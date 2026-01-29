@@ -1,0 +1,90 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider   = "prisma-client"
+  output     = "../src/generated/client"
+  engineType = "library"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model MasterTask {
+  id                  Int     @id @default(autoincrement())
+  name                String
+  description         String?
+  type                String
+  duration            Int
+
+  templateTasks       TemplateTask[]
+
+  @@map("master_tasks")
+}
+
+model Template {
+  id            Int            @id @default(autoincrement())
+  name          String
+  description   String?
+  templateTasks TemplateTask[]
+  currentFundProfiles FundProfile[] @relation("CurrentFundProfiles")
+  targetFundProfiles  FundProfile[] @relation("TargetFundProfiles")
+
+  @@map("templates")
+}
+
+model TemplateTask {
+  id            Int              @id @default(autoincrement())
+  templateId    Int              @map("template_id")
+  taskId        Int?             @map("task_id") // Optional for adhoc
+  name          String           // Required for all, copied from Master or set for Adhoc
+  duration      Int
+  sequenceOrder Int              @map("sequence_order")
+  dayOffset     Int              @default(0) @map("day_offset")
+  startTime     String?          @map("start_time")
+  type          String           @default("PROCESS")
+  
+  dependsOnId   Int?             @map("depends_on_id") // Integrated dependency
+
+  template      Template         @relation(fields: [templateId], references: [id])
+  masterTask    MasterTask?      @relation(fields: [taskId], references: [id])
+  
+  dependsOn     TemplateTask?    @relation("TaskDependency", fields: [dependsOnId], references: [id])
+  dependents    TemplateTask[]   @relation("TaskDependency")
+
+  @@map("template_tasks")
+}
+
+model FundProfile {
+  id                Int          @id @default(autoincrement())
+  name              String
+  isin              String?
+  officeStart       String?      @default("09:00") @map("office_start")
+  officeEnd         String?      @default("18:00") @map("office_end")
+  timezone          String?      @default("CET")
+  currentTemplateId Int?         @map("current_template_id")
+  targetTemplateId  Int?         @map("target_template_id")
+
+  currentTemplate   Template?    @relation("CurrentFundProfiles", fields: [currentTemplateId], references: [id])
+  targetTemplate    Template?    @relation("TargetFundProfiles", fields: [targetTemplateId], references: [id])
+
+  simulations       Simulation[]
+
+  @@map("fund_profiles")
+}
+
+model Simulation {
+  id                    Int      @id @default(autoincrement())
+  fundId                Int      @map("fund_id")
+  simulationName        String?  @map("simulation_name")
+  currentStateJson      String?  @map("current_state_json")
+  targetStateJson       String?  @map("target_state_json")
+  reinvestmentGainHours Float?   @map("reinvestment_gain_hours")
+  idleTimeSavedMinutes  Int?     @map("idle_time_saved_minutes")
+  createdAt             DateTime @default(now()) @map("created_at")
+
+  fund                  FundProfile @relation(fields: [fundId], references: [id])
+
+  @@map("simulations")
+}
