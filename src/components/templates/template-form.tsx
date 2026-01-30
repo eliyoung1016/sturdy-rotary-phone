@@ -20,7 +20,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { GripVertical, Plus, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { useFieldArray, useForm } from "react-hook-form";
+import { useFieldArray, useForm, SubmitHandler } from "react-hook-form";
 
 import { getMasterTasks } from "@/app/actions/master-task";
 import { createTemplate, updateTemplate } from "@/app/actions/template";
@@ -48,6 +48,8 @@ interface MasterTask {
   name: string;
   duration: number;
   type: "PROCESS" | "CUTOFF";
+  color: string;
+  isCashConfirmed: boolean;
 }
 
 interface TemplateFormProps {
@@ -102,7 +104,7 @@ export function TemplateForm({ initialData, templateId }: TemplateFormProps) {
   const [loading, setLoading] = useState(false);
 
   const form = useForm<TemplateInput>({
-    resolver: zodResolver(templateSchema),
+    resolver: zodResolver(templateSchema) as any,
     defaultValues: {
       name: initialData?.name || "",
       description: initialData?.description || "",
@@ -307,6 +309,8 @@ export function TemplateForm({ initialData, templateId }: TemplateFormProps) {
       startTime: "09:00",
       sequenceOrder: fields.length,
       type: defaultMaster?.type || "PROCESS",
+      color: defaultMaster?.color || "primary",
+      isCashConfirmed: defaultMaster?.isCashConfirmed || false,
       dependsOnTempId: undefined, // Singular
       saveToMaster: false,
     });
@@ -371,7 +375,13 @@ export function TemplateForm({ initialData, templateId }: TemplateFormProps) {
             {fields.map((field, index) => {
               return (
                 <SortableTaskItem key={field.id} id={field.id}>
-                  <Card className="relative">
+                  <Card
+                    className={`relative ${
+                      field.type === "CUTOFF"
+                        ? "border-destructive/50 bg-destructive/5"
+                        : ""
+                    }`}
+                  >
                     <Button
                       type="button"
                       variant="ghost"
@@ -412,6 +422,9 @@ export function TemplateForm({ initialData, templateId }: TemplateFormProps) {
                                       name: mt?.name || "",
                                       duration: mt?.duration || 0,
                                       type: mt?.type || "PROCESS",
+                                      color: mt?.color || "primary",
+                                      isCashConfirmed:
+                                        mt?.isCashConfirmed || false,
                                       saveToMaster: false,
                                     });
                                   }
@@ -499,6 +512,80 @@ export function TemplateForm({ initialData, templateId }: TemplateFormProps) {
                             <SelectContent>
                               <SelectItem value="PROCESS">Process</SelectItem>
                               <SelectItem value="CUTOFF">Cutoff</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label>Color</Label>
+                          <Select
+                            value={field.color || "primary"}
+                            onValueChange={(val) => {
+                              const currentTasks = form.getValues().tasks;
+                              currentTasks[index] = {
+                                ...currentTasks[index],
+                                color: val,
+                              };
+                              update(index, currentTasks[index]);
+                            }}
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="primary">Primary</SelectItem>
+                              <SelectItem value="secondary">
+                                Secondary
+                              </SelectItem>
+                              <SelectItem value="destructive">
+                                Destructive
+                              </SelectItem>
+                              <SelectItem value="outline">Outline</SelectItem>
+                              <SelectItem value="spot-tuquoise-1">
+                                Turquoise 1
+                              </SelectItem>
+                              <SelectItem value="spot-tuquoise-2">
+                                Turquoise 2
+                              </SelectItem>
+                              <SelectItem value="spot-tuquoise-3">
+                                Turquoise 3
+                              </SelectItem>
+                              <SelectItem value="spot-blue-1">
+                                Blue 1
+                              </SelectItem>
+                              <SelectItem value="spot-blue-2">
+                                Blue 2
+                              </SelectItem>
+                              <SelectItem value="spot-blue-3">
+                                Blue 3
+                              </SelectItem>
+                              <SelectItem value="spot-orange-1">
+                                Orange 1
+                              </SelectItem>
+                              <SelectItem value="spot-orange-2">
+                                Orange 2
+                              </SelectItem>
+                              <SelectItem value="spot-orange-3">
+                                Orange 3
+                              </SelectItem>
+                              <SelectItem value="spot-yellow">
+                                Yellow
+                              </SelectItem>
+                              <SelectItem value="spot-green-1">
+                                Green 1
+                              </SelectItem>
+                              <SelectItem value="spot-green-2">
+                                Green 2
+                              </SelectItem>
+                              <SelectItem value="spot-mauve-1">
+                                Mauve 1
+                              </SelectItem>
+                              <SelectItem value="spot-mauve-2">
+                                Mauve 2
+                              </SelectItem>
+                              <SelectItem value="spot-mauve-3">
+                                Mauve 3
+                              </SelectItem>
                             </SelectContent>
                           </Select>
                         </div>

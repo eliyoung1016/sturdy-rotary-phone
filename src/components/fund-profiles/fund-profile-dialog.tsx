@@ -1,8 +1,7 @@
 "use client";
 
-import { useTransition, useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { upsertFundProfile } from "@/app/actions/fund-profiles";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -10,9 +9,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -21,10 +19,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  fundProfileSchema,
   FundProfileInput,
+  fundProfileSchema,
 } from "@/lib/schemas/fund-profile";
-import { upsertFundProfile } from "@/app/actions/fund-profiles";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useState, useTransition } from "react";
+import { useForm, SubmitHandler } from "react-hook-form";
 
 interface FundProfileDialogProps {
   profile?: FundProfileInput;
@@ -51,7 +51,7 @@ export function FundProfileDialog({
   // Default values need to handle nulls from the DB profile if passing raw Prisma objects
   // But here we expect profile to be sanitised or matching FundProfileInput
   const form = useForm<FundProfileInput>({
-    resolver: zodResolver(fundProfileSchema),
+    resolver: zodResolver(fundProfileSchema) as any,
     defaultValues: profile || {
       name: "",
       isin: "",
@@ -63,7 +63,7 @@ export function FundProfileDialog({
     },
   });
 
-  function onSubmit(data: FundProfileInput) {
+  const onSubmit: SubmitHandler<FundProfileInput> = (data) => {
     startTransition(async () => {
       const result = await upsertFundProfile(data);
       if (result.success) {
@@ -74,7 +74,7 @@ export function FundProfileDialog({
         // Could add toast error here
       }
     });
-  }
+  };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>

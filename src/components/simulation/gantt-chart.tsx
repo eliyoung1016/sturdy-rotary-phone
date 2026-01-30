@@ -107,11 +107,11 @@ export function GanttChart({
 
   const totalMinutes = maxMinutes - minMinutes;
   const totalDays = Math.ceil(totalMinutes / (24 * 60));
-  
+
   // Calculate width: use either calculated width or fill available space (100%)
   const calculatedWidth = (totalMinutes / 60) * HOUR_WIDTH;
   const pixelsPerMinute = HOUR_WIDTH / 60;
-  
+
   // Generate day headers
   const days = [];
   const startDay = Math.floor(minMinutes / (24 * 60));
@@ -172,7 +172,9 @@ export function GanttChart({
 
   // Helper to get current chart width for pixel calculations
   const getChartWidth = () => {
-    return chartContentRef.current?.getBoundingClientRect().width || calculatedWidth;
+    return (
+      chartContentRef.current?.getBoundingClientRect().width || calculatedWidth
+    );
   };
 
   // Helper to convert minutes to percentage position
@@ -199,13 +201,16 @@ export function GanttChart({
         >
           <div className="bg-primary text-primary-foreground px-3 py-2 rounded-md shadow-lg text-sm font-semibold whitespace-nowrap">
             <div className="text-center">
-              Day {dragLabel.dayOffset >= 0 ? `D+${dragLabel.dayOffset}` : `D${dragLabel.dayOffset}`}
+              Day{" "}
+              {dragLabel.dayOffset >= 0
+                ? `D+${dragLabel.dayOffset}`
+                : `D${dragLabel.dayOffset}`}
             </div>
             <div className="text-center text-base">{dragLabel.time}</div>
           </div>
         </div>
       )}
-      
+
       {/* Timeline Header */}
       <div className="overflow-x-auto" ref={containerRef}>
         <div
@@ -248,7 +253,7 @@ export function GanttChart({
                 const hourStartMins = getAbsoluteMinutes(day, "00:00") + h * 60;
                 const leftPercent = minutesToPercent(hourStartMins);
                 const widthPercent = minutesToPercentWidth(60);
-                
+
                 return (
                   <div
                     key={`${day}-${h}`}
@@ -270,16 +275,23 @@ export function GanttChart({
               const officeStartMins = getAbsoluteMinutes(day, officeStart);
               const officeEndMins = getAbsoluteMinutes(day, officeEnd);
               const officeLeftPercent = minutesToPercent(officeStartMins);
-              const officeWidthPercent = minutesToPercentWidth(officeEndMins - officeStartMins);
+              const officeWidthPercent = minutesToPercentWidth(
+                officeEndMins - officeStartMins,
+              );
 
               // Red zones for non-working hours
               const beforeOfficeStart = getAbsoluteMinutes(day, "00:00");
-              const beforeOfficeLeftPercent = minutesToPercent(beforeOfficeStart);
-              const beforeOfficeWidthPercent = minutesToPercentWidth(officeStartMins - beforeOfficeStart);
+              const beforeOfficeLeftPercent =
+                minutesToPercent(beforeOfficeStart);
+              const beforeOfficeWidthPercent = minutesToPercentWidth(
+                officeStartMins - beforeOfficeStart,
+              );
 
               const afterOfficeEnd = getAbsoluteMinutes(day + 1, "00:00");
               const afterOfficeLeftPercent = minutesToPercent(officeEndMins);
-              const afterOfficeWidthPercent = minutesToPercentWidth(afterOfficeEnd - officeEndMins);
+              const afterOfficeWidthPercent = minutesToPercentWidth(
+                afterOfficeEnd - officeEndMins,
+              );
 
               return (
                 <React.Fragment key={`zones-${day}`}>
@@ -317,18 +329,27 @@ export function GanttChart({
             {sortedTasks
               .filter((task) => task.duration === 0)
               .map((task) => {
+                const colorStyle = task.color
+                  ? `var(--color-${task.color})`
+                  : undefined;
+
                 const startMins = getAbsoluteMinutes(
                   task.dayOffset,
                   task.startTime,
                 );
                 const leftPercent = minutesToPercent(startMins);
-                const colorClass = task.color ? `border-${task.color}` : "border-primary";
 
                 return (
                   <div
                     key={`cutoff-line-${task.tempId}`}
-                    className={cn("absolute top-0 bottom-0 border-l-2 border-dashed", colorClass)}
-                    style={{ left: `${leftPercent}%` }}
+                    className={cn(
+                      "absolute top-0 bottom-0 border-l-2 border-dashed",
+                      !task.color && "border-primary",
+                    )}
+                    style={{
+                      left: `${leftPercent}%`,
+                      borderColor: colorStyle,
+                    }}
                   />
                 );
               })}
@@ -344,6 +365,9 @@ export function GanttChart({
               const leftPercent = minutesToPercent(startMins);
               const widthPercent = minutesToPercentWidth(task.duration);
               const isCutoff = task.duration === 0;
+              const colorStyle = task.color
+                ? `var(--color-${task.color})`
+                : undefined;
 
               return (
                 <div key={task.tempId} className="relative h-10 w-full group">
@@ -359,21 +383,26 @@ export function GanttChart({
                         if (readOnly) return;
                         const chartWidth = getChartWidth();
                         const deltaPixels = info.offset.x;
-                        const deltaMinutes = (deltaPixels / chartWidth) * totalMinutes;
+                        const deltaMinutes =
+                          (deltaPixels / chartWidth) * totalMinutes;
                         const newStartMins = startMins + deltaMinutes;
                         const snappedMins = Math.round(newStartMins / 5) * 5;
                         const { dayOffset, startTime } =
                           getDayAndTimeFromMinutes(snappedMins);
-                        
+
                         // Calculate label position based on actual drag position (not snapped)
-                        const containerRect = containerRef.current?.getBoundingClientRect();
+                        const containerRect =
+                          containerRef.current?.getBoundingClientRect();
                         if (containerRect && containerRef.current) {
                           const scrollLeft = containerRef.current.scrollLeft;
-                          const linePositionPercent = minutesToPercent(newStartMins);
-                          const linePosition = (linePositionPercent / 100) * chartWidth;
-                          const labelX = containerRect.left + linePosition - scrollLeft;
+                          const linePositionPercent =
+                            minutesToPercent(newStartMins);
+                          const linePosition =
+                            (linePositionPercent / 100) * chartWidth;
+                          const labelX =
+                            containerRect.left + linePosition - scrollLeft;
                           const labelY = containerRect.top - 50;
-                          
+
                           setDragLabel({
                             show: true,
                             x: labelX,
@@ -388,7 +417,8 @@ export function GanttChart({
                         setDragLabel({ ...dragLabel, show: false });
                         const chartWidth = getChartWidth();
                         const deltaPixels = info.offset.x;
-                        const deltaMinutes = (deltaPixels / chartWidth) * totalMinutes;
+                        const deltaMinutes =
+                          (deltaPixels / chartWidth) * totalMinutes;
                         const newStartMins = startMins + deltaMinutes;
                         const snappedMins = Math.round(newStartMins / 5) * 5;
                         const { dayOffset, startTime } =
@@ -403,7 +433,13 @@ export function GanttChart({
                       }}
                     >
                       {/* Label next to the line */}
-                      <span className={cn("ml-2 text-sm font-bold whitespace-nowrap bg-background/80 px-2 py-0.5 rounded shadow-sm", task.color ? `text-${task.color}` : "text-primary")}>
+                      <span
+                        className={cn(
+                          "ml-2 text-sm font-bold whitespace-nowrap bg-background/80 px-2 py-0.5 rounded shadow-sm",
+                          !task.color && "text-primary",
+                        )}
+                        style={{ color: colorStyle }}
+                      >
                         {task.name}
                       </span>
                     </motion.div>
@@ -413,12 +449,14 @@ export function GanttChart({
                       className={cn(
                         "absolute top-0 h-8 rounded-md flex items-center px-2 text-xs font-semibold text-white cursor-grab active:cursor-grabbing",
                         !readOnly
-                          ? task.color ? `bg-${task.color} hover:bg-${task.color}/90` : "bg-primary hover:bg-primary/90"
+                          ? !task.color && "bg-primary hover:bg-primary/90"
                           : "bg-muted-foreground",
                       )}
                       style={{
                         left: `${leftPercent}%`,
                         width: `${Math.max(widthPercent, 0.5)}%`, // Min width visibility
+                        backgroundColor:
+                          !readOnly && task.color ? colorStyle : undefined,
                       }}
                       drag={readOnly ? false : "x"}
                       dragMomentum={false}
@@ -427,22 +465,31 @@ export function GanttChart({
                         if (readOnly) return;
                         const chartWidth = getChartWidth();
                         const deltaPixels = info.offset.x;
-                        const deltaMinutes = (deltaPixels / chartWidth) * totalMinutes;
+                        const deltaMinutes =
+                          (deltaPixels / chartWidth) * totalMinutes;
                         const newStartMins = startMins + deltaMinutes;
                         const snappedMins = Math.round(newStartMins / 5) * 5;
                         const { dayOffset, startTime } =
                           getDayAndTimeFromMinutes(snappedMins);
-                        
+
                         // Calculate label position based on actual drag position (not snapped)
-                        const containerRect = containerRef.current?.getBoundingClientRect();
+                        const containerRect =
+                          containerRef.current?.getBoundingClientRect();
                         if (containerRect && containerRef.current) {
                           const scrollLeft = containerRef.current.scrollLeft;
-                          const taskPositionPercent = minutesToPercent(newStartMins);
-                          const taskPosition = (taskPositionPercent / 100) * chartWidth;
-                          const taskWidthPixels = (widthPercent / 100) * chartWidth;
-                          const labelX = containerRect.left + taskPosition - scrollLeft + taskWidthPixels / 2;
+                          const taskPositionPercent =
+                            minutesToPercent(newStartMins);
+                          const taskPosition =
+                            (taskPositionPercent / 100) * chartWidth;
+                          const taskWidthPixels =
+                            (widthPercent / 100) * chartWidth;
+                          const labelX =
+                            containerRect.left +
+                            taskPosition -
+                            scrollLeft +
+                            taskWidthPixels / 2;
                           const labelY = containerRect.top - 50;
-                          
+
                           setDragLabel({
                             show: true,
                             x: labelX,
@@ -457,7 +504,8 @@ export function GanttChart({
                         setDragLabel({ ...dragLabel, show: false });
                         const chartWidth = getChartWidth();
                         const deltaPixels = info.offset.x;
-                        const deltaMinutes = (deltaPixels / chartWidth) * totalMinutes;
+                        const deltaMinutes =
+                          (deltaPixels / chartWidth) * totalMinutes;
                         const newStartMins = startMins + deltaMinutes;
 
                         // Rounding to nearest 15 mins for better UX? Or 5 mins. Let's do 5.
@@ -489,8 +537,14 @@ export function GanttChart({
                             const onMove = (moveEvent: PointerEvent) => {
                               const diffX = moveEvent.clientX - startX;
                               const diffPercent = (diffX / chartWidth) * 100;
-                              const newWidthPercent = Math.max(startWidthPercent + diffPercent, 0.5);
-                              const newDuration = Math.round((newWidthPercent / 100) * totalMinutes / 5) * 5; // Snap 5 mins
+                              const newWidthPercent = Math.max(
+                                startWidthPercent + diffPercent,
+                                0.5,
+                              );
+                              const newDuration =
+                                Math.round(
+                                  ((newWidthPercent / 100) * totalMinutes) / 5,
+                                ) * 5; // Snap 5 mins
 
                               onTaskUpdate(
                                 task.tempId,

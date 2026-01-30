@@ -81,10 +81,10 @@ export default async function FundProfilesPage() {
                     <FundProfileDialog
                       profile={{
                         ...profile,
-                        isin: profile.isin || undefined,
-                        officeStart: profile.officeStart || undefined,
-                        officeEnd: profile.officeEnd || undefined,
-                        timezone: profile.timezone || undefined,
+                        isin: profile.isin || "",
+                        officeStart: profile.officeStart || "09:00",
+                        officeEnd: profile.officeEnd || "18:00",
+                        timezone: profile.timezone || "UTC",
                         currentTemplateId: profile.currentTemplateId,
                         targetTemplateId: profile.targetTemplateId,
                       }}

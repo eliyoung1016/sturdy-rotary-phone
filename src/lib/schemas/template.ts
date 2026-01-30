@@ -11,6 +11,8 @@ export const templateTaskSchema = z.object({
   startTime: z.string().optional(), // "HH:MM"
   sequenceOrder: z.number(),
   type: z.enum(["PROCESS", "CUTOFF"]), // 'CUTOFF' or 'PROCESS'
+  color: z.string().optional().default("primary"),
+  isCashConfirmed: z.boolean().default(false),
 
   // UI usage
   tempId: z.string(),

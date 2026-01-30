@@ -42,6 +42,8 @@ export type MasterTaskMinAggregateOutputType = {
   description: string | null
   type: string | null
   duration: number | null
+  color: string | null
+  isCashConfirmed: boolean | null
 }
 
 export type MasterTaskMaxAggregateOutputType = {
@@ -50,6 +52,8 @@ export type MasterTaskMaxAggregateOutputType = {
   description: string | null
   type: string | null
   duration: number | null
+  color: string | null
+  isCashConfirmed: boolean | null
 }
 
 export type MasterTaskCountAggregateOutputType = {
@@ -58,6 +62,8 @@ export type MasterTaskCountAggregateOutputType = {
   description: number
   type: number
   duration: number
+  color: number
+  isCashConfirmed: number
   _all: number
 }
 
@@ -78,6 +84,8 @@ export type MasterTaskMinAggregateInputType = {
   description?: true
   type?: true
   duration?: true
+  color?: true
+  isCashConfirmed?: true
 }
 
 export type MasterTaskMaxAggregateInputType = {
@@ -86,6 +94,8 @@ export type MasterTaskMaxAggregateInputType = {
   description?: true
   type?: true
   duration?: true
+  color?: true
+  isCashConfirmed?: true
 }
 
 export type MasterTaskCountAggregateInputType = {
@@ -94,6 +104,8 @@ export type MasterTaskCountAggregateInputType = {
   description?: true
   type?: true
   duration?: true
+  color?: true
+  isCashConfirmed?: true
   _all?: true
 }
 
@@ -189,6 +201,8 @@ export type MasterTaskGroupByOutputType = {
   description: string | null
   type: string
   duration: number
+  color: string | null
+  isCashConfirmed: boolean
   _count: MasterTaskCountAggregateOutputType | null
   _avg: MasterTaskAvgAggregateOutputType | null
   _sum: MasterTaskSumAggregateOutputType | null
@@ -220,6 +234,8 @@ export type MasterTaskWhereInput = {
   description?: Prisma.StringNullableFilter<"MasterTask"> | string | null
   type?: Prisma.StringFilter<"MasterTask"> | string
   duration?: Prisma.IntFilter<"MasterTask"> | number
+  color?: Prisma.StringNullableFilter<"MasterTask"> | string | null
+  isCashConfirmed?: Prisma.BoolFilter<"MasterTask"> | boolean
   templateTasks?: Prisma.TemplateTaskListRelationFilter
 }
 
@@ -229,6 +245,8 @@ export type MasterTaskOrderByWithRelationInput = {
   description?: Prisma.SortOrderInput | Prisma.SortOrder
   type?: Prisma.SortOrder
   duration?: Prisma.SortOrder
+  color?: Prisma.SortOrderInput | Prisma.SortOrder
+  isCashConfirmed?: Prisma.SortOrder
   templateTasks?: Prisma.TemplateTaskOrderByRelationAggregateInput
 }
 
@@ -241,6 +259,8 @@ export type MasterTaskWhereUniqueInput = Prisma.AtLeast<{
   description?: Prisma.StringNullableFilter<"MasterTask"> | string | null
   type?: Prisma.StringFilter<"MasterTask"> | string
   duration?: Prisma.IntFilter<"MasterTask"> | number
+  color?: Prisma.StringNullableFilter<"MasterTask"> | string | null
+  isCashConfirmed?: Prisma.BoolFilter<"MasterTask"> | boolean
   templateTasks?: Prisma.TemplateTaskListRelationFilter
 }, "id">
 
@@ -250,6 +270,8 @@ export type MasterTaskOrderByWithAggregationInput = {
   description?: Prisma.SortOrderInput | Prisma.SortOrder
   type?: Prisma.SortOrder
   duration?: Prisma.SortOrder
+  color?: Prisma.SortOrderInput | Prisma.SortOrder
+  isCashConfirmed?: Prisma.SortOrder
   _count?: Prisma.MasterTaskCountOrderByAggregateInput
   _avg?: Prisma.MasterTaskAvgOrderByAggregateInput
   _max?: Prisma.MasterTaskMaxOrderByAggregateInput
@@ -266,6 +288,8 @@ export type MasterTaskScalarWhereWithAggregatesInput = {
   description?: Prisma.StringNullableWithAggregatesFilter<"MasterTask"> | string | null
   type?: Prisma.StringWithAggregatesFilter<"MasterTask"> | string
   duration?: Prisma.IntWithAggregatesFilter<"MasterTask"> | number
+  color?: Prisma.StringNullableWithAggregatesFilter<"MasterTask"> | string | null
+  isCashConfirmed?: Prisma.BoolWithAggregatesFilter<"MasterTask"> | boolean
 }
 
 export type MasterTaskCreateInput = {
@@ -273,6 +297,8 @@ export type MasterTaskCreateInput = {
   description?: string | null
   type: string
   duration: number
+  color?: string | null
+  isCashConfirmed?: boolean
   templateTasks?: Prisma.TemplateTaskCreateNestedManyWithoutMasterTaskInput
 }
 
@@ -282,6 +308,8 @@ export type MasterTaskUncheckedCreateInput = {
   description?: string | null
   type: string
   duration: number
+  color?: string | null
+  isCashConfirmed?: boolean
   templateTasks?: Prisma.TemplateTaskUncheckedCreateNestedManyWithoutMasterTaskInput
 }
 
@@ -290,6 +318,8 @@ export type MasterTaskUpdateInput = {
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.StringFieldUpdateOperationsInput | string
   duration?: Prisma.IntFieldUpdateOperationsInput | number
+  color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isCashConfirmed?: Prisma.BoolFieldUpdateOperationsInput | boolean
   templateTasks?: Prisma.TemplateTaskUpdateManyWithoutMasterTaskNestedInput
 }
 
@@ -299,6 +329,8 @@ export type MasterTaskUncheckedUpdateInput = {
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.StringFieldUpdateOperationsInput | string
   duration?: Prisma.IntFieldUpdateOperationsInput | number
+  color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isCashConfirmed?: Prisma.BoolFieldUpdateOperationsInput | boolean
   templateTasks?: Prisma.TemplateTaskUncheckedUpdateManyWithoutMasterTaskNestedInput
 }
 
@@ -308,6 +340,8 @@ export type MasterTaskCreateManyInput = {
   description?: string | null
   type: string
   duration: number
+  color?: string | null
+  isCashConfirmed?: boolean
 }
 
 export type MasterTaskUpdateManyMutationInput = {
@@ -315,6 +349,8 @@ export type MasterTaskUpdateManyMutationInput = {
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.StringFieldUpdateOperationsInput | string
   duration?: Prisma.IntFieldUpdateOperationsInput | number
+  color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isCashConfirmed?: Prisma.BoolFieldUpdateOperationsInput | boolean
 }
 
 export type MasterTaskUncheckedUpdateManyInput = {
@@ -323,6 +359,8 @@ export type MasterTaskUncheckedUpdateManyInput = {
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.StringFieldUpdateOperationsInput | string
   duration?: Prisma.IntFieldUpdateOperationsInput | number
+  color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isCashConfirmed?: Prisma.BoolFieldUpdateOperationsInput | boolean
 }
 
 export type MasterTaskCountOrderByAggregateInput = {
@@ -331,6 +369,8 @@ export type MasterTaskCountOrderByAggregateInput = {
   description?: Prisma.SortOrder
   type?: Prisma.SortOrder
   duration?: Prisma.SortOrder
+  color?: Prisma.SortOrder
+  isCashConfirmed?: Prisma.SortOrder
 }
 
 export type MasterTaskAvgOrderByAggregateInput = {
@@ -344,6 +384,8 @@ export type MasterTaskMaxOrderByAggregateInput = {
   description?: Prisma.SortOrder
   type?: Prisma.SortOrder
   duration?: Prisma.SortOrder
+  color?: Prisma.SortOrder
+  isCashConfirmed?: Prisma.SortOrder
 }
 
 export type MasterTaskMinOrderByAggregateInput = {
@@ -352,6 +394,8 @@ export type MasterTaskMinOrderByAggregateInput = {
   description?: Prisma.SortOrder
   type?: Prisma.SortOrder
   duration?: Prisma.SortOrder
+  color?: Prisma.SortOrder
+  isCashConfirmed?: Prisma.SortOrder
 }
 
 export type MasterTaskSumOrderByAggregateInput = {
@@ -380,6 +424,10 @@ export type IntFieldUpdateOperationsInput = {
   divide?: number
 }
 
+export type BoolFieldUpdateOperationsInput = {
+  set?: boolean
+}
+
 export type MasterTaskCreateNestedOneWithoutTemplateTasksInput = {
   create?: Prisma.XOR<Prisma.MasterTaskCreateWithoutTemplateTasksInput, Prisma.MasterTaskUncheckedCreateWithoutTemplateTasksInput>
   connectOrCreate?: Prisma.MasterTaskCreateOrConnectWithoutTemplateTasksInput
@@ -401,6 +449,8 @@ export type MasterTaskCreateWithoutTemplateTasksInput = {
   description?: string | null
   type: string
   duration: number
+  color?: string | null
+  isCashConfirmed?: boolean
 }
 
 export type MasterTaskUncheckedCreateWithoutTemplateTasksInput = {
@@ -409,6 +459,8 @@ export type MasterTaskUncheckedCreateWithoutTemplateTasksInput = {
   description?: string | null
   type: string
   duration: number
+  color?: string | null
+  isCashConfirmed?: boolean
 }
 
 export type MasterTaskCreateOrConnectWithoutTemplateTasksInput = {
@@ -432,6 +484,8 @@ export type MasterTaskUpdateWithoutTemplateTasksInput = {
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.StringFieldUpdateOperationsInput | string
   duration?: Prisma.IntFieldUpdateOperationsInput | number
+  color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isCashConfirmed?: Prisma.BoolFieldUpdateOperationsInput | boolean
 }
 
 export type MasterTaskUncheckedUpdateWithoutTemplateTasksInput = {
@@ -440,6 +494,8 @@ export type MasterTaskUncheckedUpdateWithoutTemplateTasksInput = {
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.StringFieldUpdateOperationsInput | string
   duration?: Prisma.IntFieldUpdateOperationsInput | number
+  color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isCashConfirmed?: Prisma.BoolFieldUpdateOperationsInput | boolean
 }
 
 
@@ -479,6 +535,8 @@ export type MasterTaskSelect<ExtArgs extends runtime.Types.Extensions.InternalAr
   description?: boolean
   type?: boolean
   duration?: boolean
+  color?: boolean
+  isCashConfirmed?: boolean
   templateTasks?: boolean | Prisma.MasterTask$templateTasksArgs<ExtArgs>
   _count?: boolean | Prisma.MasterTaskCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["masterTask"]>
@@ -489,6 +547,8 @@ export type MasterTaskSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Ex
   description?: boolean
   type?: boolean
   duration?: boolean
+  color?: boolean
+  isCashConfirmed?: boolean
 }, ExtArgs["result"]["masterTask"]>
 
 export type MasterTaskSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -497,6 +557,8 @@ export type MasterTaskSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Ex
   description?: boolean
   type?: boolean
   duration?: boolean
+  color?: boolean
+  isCashConfirmed?: boolean
 }, ExtArgs["result"]["masterTask"]>
 
 export type MasterTaskSelectScalar = {
@@ -505,9 +567,11 @@ export type MasterTaskSelectScalar = {
   description?: boolean
   type?: boolean
   duration?: boolean
+  color?: boolean
+  isCashConfirmed?: boolean
 }
 
-export type MasterTaskOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "description" | "type" | "duration", ExtArgs["result"]["masterTask"]>
+export type MasterTaskOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "description" | "type" | "duration" | "color" | "isCashConfirmed", ExtArgs["result"]["masterTask"]>
 export type MasterTaskInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   templateTasks?: boolean | Prisma.MasterTask$templateTasksArgs<ExtArgs>
   _count?: boolean | Prisma.MasterTaskCountOutputTypeDefaultArgs<ExtArgs>
@@ -526,6 +590,8 @@ export type $MasterTaskPayload<ExtArgs extends runtime.Types.Extensions.Internal
     description: string | null
     type: string
     duration: number
+    color: string | null
+    isCashConfirmed: boolean
   }, ExtArgs["result"]["masterTask"]>
   composites: {}
 }
@@ -955,6 +1021,8 @@ export interface MasterTaskFieldRefs {
   readonly description: Prisma.FieldRef<"MasterTask", 'String'>
   readonly type: Prisma.FieldRef<"MasterTask", 'String'>
   readonly duration: Prisma.FieldRef<"MasterTask", 'Int'>
+  readonly color: Prisma.FieldRef<"MasterTask", 'String'>
+  readonly isCashConfirmed: Prisma.FieldRef<"MasterTask", 'Boolean'>
 }
     
 

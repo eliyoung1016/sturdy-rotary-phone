@@ -7,14 +7,12 @@ export const fundProfileSchema = z.object({
   officeStart: z
     .string()
     .regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format (HH:MM)")
-    .optional()
     .default("09:00"),
   officeEnd: z
     .string()
     .regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format (HH:MM)")
-    .optional()
     .default("18:00"),
-  timezone: z.string().optional().default("CET"),
+  timezone: z.string().default("CET"),
   currentTemplateId: z.number().nullable().optional(),
   targetTemplateId: z.number().nullable().optional(),
 });

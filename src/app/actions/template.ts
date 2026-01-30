@@ -43,6 +43,8 @@ export async function createTemplate(data: TemplateInput) {
               name: task.name,
               duration: task.duration,
               type: task.type || "PROCESS",
+              color: task.color || "primary",
+              isCashConfirmed: task.isCashConfirmed,
             },
           });
           masterTaskId = newMasterTask.id;
@@ -58,6 +60,8 @@ export async function createTemplate(data: TemplateInput) {
             dayOffset: task.dayOffset,
             startTime: task.startTime,
             type: task.type || "PROCESS",
+            color: task.color || "primary",
+            isCashConfirmed: task.isCashConfirmed,
           },
         });
         tempIdToTemplateTaskId.set(task.tempId, templateTask.id);
@@ -117,6 +121,8 @@ export async function getTemplate(id: number) {
       dayOffset: t.dayOffset,
       startTime: t.startTime || "09:00",
       type: t.type as "PROCESS" | "CUTOFF",
+      color: t.color || "primary",
+      isCashConfirmed: t.isCashConfirmed,
       dependsOnTempId: undefined as string | undefined, // mapped later
       dependsOnId: t.dependsOnId,
       saveToMaster: false,
@@ -187,6 +193,8 @@ export async function updateTemplate(id: number, data: TemplateInput) {
               name: task.name,
               duration: task.duration,
               type: task.type || "PROCESS",
+              color: task.color || "primary",
+              isCashConfirmed: task.isCashConfirmed,
             },
           });
           masterTaskId = newMasterTask.id;
@@ -202,6 +210,8 @@ export async function updateTemplate(id: number, data: TemplateInput) {
             dayOffset: task.dayOffset,
             startTime: task.startTime,
             type: task.type || "PROCESS",
+            color: task.color || "primary",
+            isCashConfirmed: task.isCashConfirmed,
           },
         });
         tempIdToTemplateTaskId.set(task.tempId, templateTask.id);

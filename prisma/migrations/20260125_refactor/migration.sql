@@ -2,8 +2,9 @@ CREATE TABLE master_tasks (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
     description TEXT,
-    type TEXT NOT NULL,                 -- 'CUTOFF' or 'PROCESS'
-    duration INTEGER NOT NULL
+    duration INTEGER NOT NULL,
+    color TEXT DEFAULT 'primary',
+    is_cash_confirmed BOOLEAN DEFAULT 0
 );
 
 CREATE TABLE templates (
@@ -20,8 +21,9 @@ CREATE TABLE template_tasks (
     duration INTEGER NOT NULL,
     sequence_order INTEGER NOT NULL,
     day_offset INTEGER DEFAULT 0,
-    start_time TEXT,
     type TEXT NOT NULL DEFAULT 'PROCESS', -- 'CUTOFF' or 'PROCESS'
+    color TEXT DEFAULT 'primary',
+    is_cash_confirmed BOOLEAN DEFAULT 0,
     depends_on_id INTEGER,             -- Self-reference for dependency
     FOREIGN KEY (template_id) REFERENCES templates(id),
     FOREIGN KEY (task_id) REFERENCES master_tasks(id),

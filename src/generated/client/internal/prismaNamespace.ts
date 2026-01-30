@@ -819,7 +819,9 @@ export const MasterTaskScalarFieldEnum = {
   name: 'name',
   description: 'description',
   type: 'type',
-  duration: 'duration'
+  duration: 'duration',
+  color: 'color',
+  isCashConfirmed: 'isCashConfirmed'
 } as const
 
 export type MasterTaskScalarFieldEnum = (typeof MasterTaskScalarFieldEnum)[keyof typeof MasterTaskScalarFieldEnum]
@@ -844,6 +846,8 @@ export const TemplateTaskScalarFieldEnum = {
   dayOffset: 'dayOffset',
   startTime: 'startTime',
   type: 'type',
+  color: 'color',
+  isCashConfirmed: 'isCashConfirmed',
   dependsOnId: 'dependsOnId'
 } as const
 
@@ -911,6 +915,13 @@ export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'In
  * Reference to a field of type 'String'
  */
 export type StringFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'String'>
+    
+
+
+/**
+ * Reference to a field of type 'Boolean'
+ */
+export type BooleanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Boolean'>
     
 
 

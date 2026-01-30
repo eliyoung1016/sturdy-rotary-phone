@@ -51,6 +51,7 @@ export function MasterTaskForm({
       description: initialData?.description || "",
       type: initialData?.type || "PROCESS",
       duration: initialData?.duration ?? 30,
+      color: initialData?.color || "primary",
     },
     mode: "onChange",
   });
@@ -158,6 +159,39 @@ export function MasterTaskForm({
                 {errors.duration.message}
               </span>
             )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="color">Color</Label>
+            <Select
+              onValueChange={(val) => setValue("color", val)}
+              defaultValue={watch("color") || "primary"}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select color" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="primary">Primary</SelectItem>
+                <SelectItem value="secondary">Secondary</SelectItem>
+                <SelectItem value="destructive">Destructive</SelectItem>
+                <SelectItem value="outline">Outline</SelectItem>
+                <SelectItem value="spot-tuquoise-1">Turquoise 1</SelectItem>
+                <SelectItem value="spot-tuquoise-2">Turquoise 2</SelectItem>
+                <SelectItem value="spot-tuquoise-3">Turquoise 3</SelectItem>
+                <SelectItem value="spot-blue-1">Blue 1</SelectItem>
+                <SelectItem value="spot-blue-2">Blue 2</SelectItem>
+                <SelectItem value="spot-blue-3">Blue 3</SelectItem>
+                <SelectItem value="spot-orange-1">Orange 1</SelectItem>
+                <SelectItem value="spot-orange-2">Orange 2</SelectItem>
+                <SelectItem value="spot-orange-3">Orange 3</SelectItem>
+                <SelectItem value="spot-yellow">Yellow</SelectItem>
+                <SelectItem value="spot-green-1">Green 1</SelectItem>
+                <SelectItem value="spot-green-2">Green 2</SelectItem>
+                <SelectItem value="spot-mauve-1">Mauve 1</SelectItem>
+                <SelectItem value="spot-mauve-2">Mauve 2</SelectItem>
+                <SelectItem value="spot-mauve-3">Mauve 3</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
 

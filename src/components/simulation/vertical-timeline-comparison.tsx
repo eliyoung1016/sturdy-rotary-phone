@@ -93,11 +93,17 @@ export function VerticalTimelineComparison({
         return { hours, minutes };
       };
 
-      let earliestStart: Date | null = null;
-      let latestEnd: Date | null = null;
       const baseDate = new Date(2026, 0, 1);
 
-      tasks.forEach((task) => {
+      const startValidParams = tasks.map((task) => {
+        const { hours, minutes } = parseTime(task.startTime);
+        const startDate = new Date(baseDate);
+        startDate.setDate(baseDate.getDate() + task.dayOffset);
+        startDate.setHours(hours, minutes, 0, 0);
+        return startDate.getTime();
+      });
+
+      const endValidParams = tasks.map((task) => {
         const { hours, minutes } = parseTime(task.startTime);
         const startDate = new Date(baseDate);
         startDate.setDate(baseDate.getDate() + task.dayOffset);
@@ -105,18 +111,15 @@ export function VerticalTimelineComparison({
 
         const endDate = new Date(startDate);
         endDate.setMinutes(endDate.getMinutes() + task.duration);
-
-        if (!earliestStart || startDate < earliestStart) {
-          earliestStart = startDate;
-        }
-        if (!latestEnd || endDate > latestEnd) {
-          latestEnd = endDate;
-        }
+        return endDate.getTime();
       });
 
-      if (!earliestStart || !latestEnd) return 0;
+      if (startValidParams.length === 0) return 0;
 
-      return (latestEnd.getTime() - earliestStart.getTime()) / (1000 * 60); // minutes
+      const minStart = Math.min(...startValidParams);
+      const maxEnd = Math.max(...endValidParams);
+
+      return (maxEnd - minStart) / (1000 * 60); // minutes
     };
 
     const currentTotalMinutes = calculateTotalTime(currentTasks);
@@ -124,8 +127,14 @@ export function VerticalTimelineComparison({
     const timeSavedMinutes = currentTotalMinutes - targetTotalMinutes;
     const timeSavedHours = Math.round((timeSavedMinutes / 60) * 10) / 10;
 
-    const currentTasksTotal = currentTasks.reduce((sum, t) => sum + t.duration, 0);
-    const targetTasksTotal = targetTasks.reduce((sum, t) => sum + t.duration, 0);
+    const currentTasksTotal = currentTasks.reduce(
+      (sum, t) => sum + t.duration,
+      0,
+    );
+    const targetTasksTotal = targetTasks.reduce(
+      (sum, t) => sum + t.duration,
+      0,
+    );
     const taskDurationSaved = currentTasksTotal - targetTasksTotal;
 
     return {
@@ -201,7 +210,7 @@ export function VerticalTimelineComparison({
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {Math.round(metrics.currentTotalMinutes / 60 * 10) / 10}h
+              {Math.round((metrics.currentTotalMinutes / 60) * 10) / 10}h
             </div>
             <p className="text-xs text-muted-foreground">
               Total workflow duration
@@ -218,7 +227,7 @@ export function VerticalTimelineComparison({
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {Math.round(metrics.targetTotalMinutes / 60 * 10) / 10}h
+              {Math.round((metrics.targetTotalMinutes / 60) * 10) / 10}h
             </div>
             <p className="text-xs text-muted-foreground">
               Total workflow duration
@@ -388,7 +397,7 @@ export function VerticalTimelineComparison({
                 Current Duration
               </div>
               <div className="text-2xl font-semibold">
-                {Math.round(metrics.currentTotalMinutes / 60 * 10) / 10}h
+                {Math.round((metrics.currentTotalMinutes / 60) * 10) / 10}h
               </div>
             </div>
             <div>
@@ -396,7 +405,7 @@ export function VerticalTimelineComparison({
                 Target Duration
               </div>
               <div className="text-2xl font-semibold">
-                {Math.round(metrics.targetTotalMinutes / 60 * 10) / 10}h
+                {Math.round((metrics.targetTotalMinutes / 60) * 10) / 10}h
               </div>
             </div>
             <div>

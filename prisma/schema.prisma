@@ -17,6 +17,8 @@ model MasterTask {
   description         String?
   type                String
   duration            Int
+  color               String? @default("primary")
+  isCashConfirmed     Boolean @default(false) @map("is_cash_confirmed")
 
   templateTasks       TemplateTask[]
 
@@ -44,6 +46,8 @@ model TemplateTask {
   dayOffset     Int              @default(0) @map("day_offset")
   startTime     String?          @map("start_time")
   type          String           @default("PROCESS")
+  color         String?          @default("primary")
+  isCashConfirmed Boolean        @default(false) @map("is_cash_confirmed")
   
   dependsOnId   Int?             @map("depends_on_id") // Integrated dependency
 

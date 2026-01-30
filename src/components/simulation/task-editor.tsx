@@ -50,7 +50,14 @@ export function TaskEditor({
   return (
     <div className="space-y-4">
       {tasks.map((task, index) => (
-        <Card key={task.tempId || index} className="relative">
+        <Card
+          key={task.tempId || index}
+          className={`relative ${
+            task.type === "CUTOFF"
+              ? "border-destructive/50 bg-destructive/5"
+              : ""
+          }`}
+        >
           {!readOnly && onDelete && (
             <Button
               variant="ghost"
@@ -99,7 +106,7 @@ export function TaskEditor({
               <div className="space-y-2">
                 <Label>Color</Label>
                 <Select
-                  value={task.color || "spot-blue-1"}
+                  value={task.color || "primary"}
                   onValueChange={(val) => onUpdate(index, "color", val)}
                   disabled={readOnly}
                 >
@@ -107,6 +114,10 @@ export function TaskEditor({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="primary">Primary</SelectItem>
+                    <SelectItem value="secondary">Secondary</SelectItem>
+                    <SelectItem value="destructive">Destructive</SelectItem>
+                    <SelectItem value="outline">Outline</SelectItem>
                     <SelectItem value="spot-tuquoise-1">Turquoise 1</SelectItem>
                     <SelectItem value="spot-tuquoise-2">Turquoise 2</SelectItem>
                     <SelectItem value="spot-tuquoise-3">Turquoise 3</SelectItem>

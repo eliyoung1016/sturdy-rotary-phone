@@ -9,6 +9,8 @@ export const masterTaskSchema = z
       .number()
       .int("Duration must be a whole number")
       .min(0, "Duration must be positive"),
+    color: z.string().optional().default("primary"),
+    isCashConfirmed: z.boolean().default(false),
   })
   .superRefine((data, ctx) => {
     if (data.type === "PROCESS" && data.duration < 1) {
