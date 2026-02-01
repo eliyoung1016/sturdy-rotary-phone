@@ -6,6 +6,7 @@ import { useState } from "react";
 import { type SubmitHandler, useForm } from "react-hook-form";
 import { createMasterTask, updateMasterTask } from "@/app/actions/master-task";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -15,6 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ColorSelect } from "@/components/ui/color-select";
 import { Textarea } from "@/components/ui/textarea";
 import {
   type MasterTaskInput,
@@ -52,6 +54,7 @@ export function MasterTaskForm({
       type: initialData?.type || "PROCESS",
       duration: initialData?.duration ?? 30,
       color: initialData?.color || "primary",
+      isCashConfirmed: initialData?.isCashConfirmed || false,
     },
     mode: "onChange",
   });
@@ -95,31 +98,36 @@ export function MasterTaskForm({
       )}
 
       {/* biome-ignore lint/suspicious/noExplicitAny: Resolving react-hook-form type mismatch */}
-      <form onSubmit={handleSubmit(onSubmit as any)} className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="name">Task Name</Label>
-          <Input
-            id="name"
-            placeholder="e.g. Validate NAV"
-            {...register("name")}
-          />
-          {errors.name && (
-            <span className="text-sm text-red-500">{errors.name.message}</span>
-          )}
-        </div>
+      <form onSubmit={handleSubmit(onSubmit as any)} className="space-y-3">
+        {/* Row 1: Name (Grow) & Type (Fixed) */}
+        <div className="flex gap-3">
+          <div className="flex-1 space-y-1">
+            <Label
+              htmlFor="name"
+              className="text-xs text-muted-foreground font-semibold uppercase tracking-wider"
+            >
+              Task Name
+            </Label>
+            <Input
+              id="name"
+              placeholder="e.g. Validate NAV"
+              className="h-8 text-sm"
+              {...register("name")}
+            />
+            {errors.name && (
+              <span className="text-xs text-red-500">
+                {errors.name.message}
+              </span>
+            )}
+          </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="description">Description (Optional)</Label>
-          <Textarea
-            id="description"
-            placeholder="Briefly describe the task..."
-            {...register("description")}
-          />
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="type">Task Type</Label>
+          <div className="w-1/3 space-y-1">
+            <Label
+              htmlFor="type"
+              className="text-xs text-muted-foreground font-semibold uppercase tracking-wider"
+            >
+              Type
+            </Label>
             <Select
               onValueChange={(val) => {
                 const newType = val as "CUTOFF" | "PROCESS";
@@ -130,7 +138,7 @@ export function MasterTaskForm({
               }}
               defaultValue={watch("type")}
             >
-              <SelectTrigger>
+              <SelectTrigger className="h-8 text-sm">
                 <SelectValue placeholder="Select type" />
               </SelectTrigger>
               <SelectContent>
@@ -139,67 +147,87 @@ export function MasterTaskForm({
               </SelectContent>
             </Select>
             {errors.type && (
-              <span className="text-sm text-red-500">
+              <span className="text-xs text-red-500">
                 {errors.type.message}
               </span>
             )}
           </div>
+        </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="duration">Duration (minutes)</Label>
+        {/* Row 2: Duration, Color, Cash Confirmed */}
+        <div className="grid grid-cols-3 gap-3 items-end">
+          <div className="space-y-1">
+            <Label
+              htmlFor="duration"
+              className="text-xs text-muted-foreground font-semibold uppercase tracking-wider"
+            >
+              Duration (min)
+            </Label>
             <Input
               id="duration"
               type="number"
               placeholder="30"
+              className="h-8 text-sm"
               {...register("duration")}
               disabled={watch("type") === "CUTOFF"}
             />
             {errors.duration && (
-              <span className="text-sm text-red-500">
+              <span className="text-xs text-red-500">
                 {errors.duration.message}
               </span>
             )}
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="color">Color</Label>
-            <Select
-              onValueChange={(val) => setValue("color", val)}
-              defaultValue={watch("color") || "primary"}
+          <div className="space-y-1">
+            <Label
+              htmlFor="color"
+              className="text-xs text-muted-foreground font-semibold uppercase tracking-wider"
             >
-              <SelectTrigger>
-                <SelectValue placeholder="Select color" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="primary">Primary</SelectItem>
-                <SelectItem value="secondary">Secondary</SelectItem>
-                <SelectItem value="destructive">Destructive</SelectItem>
-                <SelectItem value="outline">Outline</SelectItem>
-                <SelectItem value="spot-tuquoise-1">Turquoise 1</SelectItem>
-                <SelectItem value="spot-tuquoise-2">Turquoise 2</SelectItem>
-                <SelectItem value="spot-tuquoise-3">Turquoise 3</SelectItem>
-                <SelectItem value="spot-blue-1">Blue 1</SelectItem>
-                <SelectItem value="spot-blue-2">Blue 2</SelectItem>
-                <SelectItem value="spot-blue-3">Blue 3</SelectItem>
-                <SelectItem value="spot-orange-1">Orange 1</SelectItem>
-                <SelectItem value="spot-orange-2">Orange 2</SelectItem>
-                <SelectItem value="spot-orange-3">Orange 3</SelectItem>
-                <SelectItem value="spot-yellow">Yellow</SelectItem>
-                <SelectItem value="spot-green-1">Green 1</SelectItem>
-                <SelectItem value="spot-green-2">Green 2</SelectItem>
-                <SelectItem value="spot-mauve-1">Mauve 1</SelectItem>
-                <SelectItem value="spot-mauve-2">Mauve 2</SelectItem>
-                <SelectItem value="spot-mauve-3">Mauve 3</SelectItem>
-              </SelectContent>
-            </Select>
+              Color
+            </Label>
+            <div className="h-8">
+              <ColorSelect
+                value={watch("color")}
+                onValueChange={(val) => setValue("color", val)}
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-2 h-8 pb-1">
+            <Checkbox
+              id="isCashConfirmed"
+              checked={watch("isCashConfirmed")}
+              onCheckedChange={(checked) =>
+                setValue("isCashConfirmed", checked as boolean)
+              }
+            />
+            <Label htmlFor="isCashConfirmed" className="text-sm font-medium">
+              Cash Confirmed
+            </Label>
           </div>
         </div>
 
-        <div className="flex justify-end gap-2 mt-4">
-          <Button type="button" variant="outline" onClick={onCancel}>
+        {/* Row 3: Description */}
+        <div className="space-y-1">
+          <Label
+            htmlFor="description"
+            className="text-xs text-muted-foreground font-semibold uppercase tracking-wider"
+          >
+            Description
+          </Label>
+          <Textarea
+            id="description"
+            placeholder="Briefly describe the task..."
+            className="h-20 resize-none text-sm"
+            {...register("description")}
+          />
+        </div>
+
+        <div className="flex justify-end gap-2 mt-4 pt-2 border-t">
+          <Button type="button" variant="outline" size="sm" onClick={onCancel}>
             Cancel
           </Button>
-          <Button type="submit" disabled={isSubmitting}>
+          <Button type="submit" size="sm" disabled={isSubmitting}>
             {isSubmitting
               ? "Saving..."
               : mode === "create"

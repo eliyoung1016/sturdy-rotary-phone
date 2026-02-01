@@ -19,7 +19,8 @@ export async function createMasterTask(data: MasterTaskInput) {
   }
 
   try {
-    const { name, description, type, duration, color } = result.data;
+    const { name, description, type, duration, color, isCashConfirmed } =
+      result.data;
 
     await prisma.masterTask.create({
       data: {
@@ -28,6 +29,7 @@ export async function createMasterTask(data: MasterTaskInput) {
         type,
         duration,
         color,
+        isCashConfirmed,
       },
     });
   } catch (error) {
@@ -78,7 +80,8 @@ export async function updateMasterTask(id: number, data: MasterTaskInput) {
   }
 
   try {
-    const { name, description, type, duration, color } = result.data;
+    const { name, description, type, duration, color, isCashConfirmed } =
+      result.data;
 
     await prisma.masterTask.update({
       where: { id },
@@ -88,6 +91,7 @@ export async function updateMasterTask(id: number, data: MasterTaskInput) {
         type,
         duration,
         color,
+        isCashConfirmed,
       },
     });
   } catch (error) {

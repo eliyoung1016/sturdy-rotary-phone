@@ -62,68 +62,75 @@ export function SimulationForm({ funds }: SimulationFormProps) {
       } else {
         router.push(`/simulations/${result.data.id}`);
       }
-    } catch (err) {
+    } catch {
       setError("An unexpected error occurred");
       setIsLoading(false);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="space-y-2">
-        <Label htmlFor="simulationName">Simulation Name</Label>
-        <Input
-          id="simulationName"
-          placeholder="e.g., Q1 2026 Analysis"
-          value={formData.simulationName}
-          onChange={(e) =>
-            setFormData({ ...formData, simulationName: e.target.value })
-          }
-          required
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="fundId">Fund Profile</Label>
-        <Select
-          value={formData.fundId}
-          onValueChange={(value) =>
-            setFormData({ ...formData, fundId: value })
-          }
-        >
-          <SelectTrigger id="fundId">
-            <SelectValue placeholder="Select a fund" />
-          </SelectTrigger>
-          <SelectContent>
-            {funds.map((fund) => (
-              <SelectItem key={fund.id} value={fund.id.toString()}>
-                {fund.name} {fund.isin ? `(${fund.isin})` : ""}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
+    <div className="w-full">
       {error && (
-        <div className="p-3 bg-red-50 text-red-600 border border-red-200 rounded text-sm">
+        <div className="mb-4 p-3 bg-red-50 text-red-600 border border-red-200 rounded text-sm">
           {error}
         </div>
       )}
+      <form
+        onSubmit={handleSubmit}
+        className="flex gap-4 items-end bg-card p-4 rounded-lg border shadow-sm"
+      >
+        <div className="flex-1 space-y-1">
+          <Label
+            htmlFor="simulationName"
+            className="text-xs uppercase text-muted-foreground font-semibold"
+          >
+            Simulation Name
+          </Label>
+          <Input
+            id="simulationName"
+            placeholder="e.g., Q1 2026 Analysis"
+            value={formData.simulationName}
+            onChange={(e) =>
+              setFormData({ ...formData, simulationName: e.target.value })
+            }
+            required
+            className="h-9"
+          />
+        </div>
 
-      <div className="flex gap-3">
-        <Button type="submit" disabled={isLoading}>
-          {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          Create Simulation
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => router.push("/simulations")}
-          disabled={isLoading}
-        >
-          Cancel
-        </Button>
-      </div>
-    </form>
+        <div className="w-[300px] space-y-1">
+          <Label
+            htmlFor="fundId"
+            className="text-xs uppercase text-muted-foreground font-semibold"
+          >
+            Fund Profile
+          </Label>
+          <Select
+            value={formData.fundId}
+            onValueChange={(value) =>
+              setFormData({ ...formData, fundId: value })
+            }
+          >
+            <SelectTrigger id="fundId" className="h-9">
+              <SelectValue placeholder="Select a fund" />
+            </SelectTrigger>
+            <SelectContent>
+              {funds.map((fund) => (
+                <SelectItem key={fund.id} value={fund.id.toString()}>
+                  {fund.name} {fund.isin ? `(${fund.isin})` : ""}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="flex gap-2">
+          <Button type="submit" disabled={isLoading} className="h-9">
+            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Create Simulation
+          </Button>
+        </div>
+      </form>
+    </div>
   );
 }

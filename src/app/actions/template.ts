@@ -203,7 +203,7 @@ export async function updateTemplate(id: number, data: TemplateInput) {
         const templateTask = await tx.templateTask.create({
           data: {
             templateId: id,
-            taskId: masterTaskId,
+            taskId: masterTaskId, // Can be null for custom tasks
             name: task.name,
             duration: task.duration,
             sequenceOrder: task.sequenceOrder,

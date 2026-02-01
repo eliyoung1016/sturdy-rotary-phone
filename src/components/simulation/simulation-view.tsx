@@ -1,14 +1,17 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useForm, FormProvider, useWatch } from "react-hook-form";
 import { GanttChart } from "./gantt-chart";
-import { TaskEditor } from "./task-editor";
+import { TaskListEditor } from "@/components/shared/task-list-editor";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { motion, AnimatePresence } from "framer-motion";
 import { Save, Loader2 } from "lucide-react";
+import { getMasterTasks } from "@/app/actions/master-task";
+import { useTaskDependencies } from "@/hooks/use-task-dependencies";
 
 interface Task {
   tempId: string;
@@ -19,7 +22,9 @@ interface Task {
   type?: "PROCESS" | "CUTOFF";
   color?: string;
   sequenceOrder: number;
-  dependsOnId?: number | null;
+  dependsOnTempId?: string | null;
+  taskId?: number;
+  saveToMaster?: boolean;
 }
 
 interface Template {
@@ -43,11 +48,25 @@ interface SimulationViewProps {
   onSave?: (
     currentTasks: Task[],
     targetTasks: Task[],
-    metrics?: { reinvestmentGainHours?: number; idleTimeSavedMinutes?: number }
+    metrics?: { reinvestmentGainHours?: number; idleTimeSavedMinutes?: number },
   ) => void;
   initialCurrentTasks?: Task[] | null;
   initialTargetTasks?: Task[] | null;
   isSaving?: boolean;
+}
+
+interface SimulationFormState {
+  currentTasks: Task[];
+  targetTasks: Task[];
+}
+
+interface MasterTask {
+  id: number;
+  name: string;
+  duration: number;
+  type: "PROCESS" | "CUTOFF";
+  color: string;
+  isCashConfirmed: boolean;
 }
 
 export function SimulationView({
@@ -59,6 +78,7 @@ export function SimulationView({
   isSaving = false,
 }: SimulationViewProps) {
   const [mode, setMode] = useState<"current" | "target">("current");
+  const [masterTasks, setMasterTasks] = useState<MasterTask[]>([]);
 
   // Transform initial data to internal state
   const mapTasks = (tasks: any[]): Task[] => {
@@ -71,82 +91,69 @@ export function SimulationView({
       duration: t.duration,
       type: t.type,
       color: t.color,
-      sequenceOrder: t.sequenceOrder,
-      dependsOnId: t.dependsOnId || null,
+      sequenceOrder: t.sequenceOrder || 0,
+      dependsOnTempId: t.dependsOnTempId || t.dependsOnId?.toString() || null,
+      taskId: t.taskId,
+      saveToMaster: false,
     }));
   };
 
-  const [currentTasks, setCurrentTasks] = useState<Task[]>(
-    initialCurrentTasks
-      ? mapTasks(initialCurrentTasks)
-      : mapTasks(fund.currentTemplate?.templateTasks || [])
-  );
+  const form = useForm<SimulationFormState>({
+    defaultValues: {
+      currentTasks: initialCurrentTasks
+        ? mapTasks(initialCurrentTasks)
+        : mapTasks(fund.currentTemplate?.templateTasks || []),
+      targetTasks: initialTargetTasks
+        ? mapTasks(initialTargetTasks)
+        : mapTasks(fund.targetTemplate?.templateTasks || []),
+    },
+  });
 
-  const [targetTasks, setTargetTasks] = useState<Task[]>(
-    initialTargetTasks
-      ? mapTasks(initialTargetTasks)
-      : mapTasks(fund.targetTemplate?.templateTasks || [])
-  );
+  useEffect(() => {
+    async function fetchMasterTasks() {
+      const res = await getMasterTasks();
+      if (res.success && res.data) {
+        setMasterTasks(res.data as unknown as MasterTask[]);
+      }
+    }
+    fetchMasterTasks();
+  }, []);
 
-  // Re-sync if fund prop changes (e.g. user selected different fund)
+  // Re-sync if fund prop changes
   useEffect(() => {
     if (!simulationId) {
-      setCurrentTasks(mapTasks(fund.currentTemplate?.templateTasks || []));
-      setTargetTasks(mapTasks(fund.targetTemplate?.templateTasks || []));
+      form.reset({
+        currentTasks: mapTasks(fund.currentTemplate?.templateTasks || []),
+        targetTasks: mapTasks(fund.targetTemplate?.templateTasks || []),
+      });
       setMode("current");
     }
-  }, [fund.id, simulationId]);
+  }, [fund.id, simulationId, form]);
 
+  const {
+    adjustForWorkingHours,
+    getAbsoluteMinutes,
+    getDayAndTime,
+    updateDependentTasks,
+  } = useTaskDependencies({
+    start: fund.officeStart || "09:00",
+    end: fund.officeEnd || "17:00",
+  });
+
+  // Watch tasks for Gantt Chart
+  const currentTasks = useWatch({
+    control: form.control,
+    name: "currentTasks",
+  });
+  const targetTasks = useWatch({ control: form.control, name: "targetTasks" });
   const activeTasks = mode === "current" ? currentTasks : targetTasks;
-  const setActiveTasks = mode === "current" ? setCurrentTasks : setTargetTasks;
+  const activeTasksFieldName =
+    mode === "current" ? "currentTasks" : "targetTasks";
 
-  // Helper: Convert time string to minutes
-  const timeToMinutes = (timeStr: string): number => {
-    const [hours, minutes] = timeStr.split(":").map(Number);
-    return hours * 60 + minutes;
-  };
-
-  // Helper: Convert minutes to time string
-  const minutesToTime = (mins: number): string => {
-    const hours = Math.floor(mins / 60);
-    const minutes = mins % 60;
-    return `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}`;
-  };
-
-  // Helper: Get absolute minutes from day offset and time
-  const getAbsoluteMinutes = (dayOffset: number, timeStr: string): number => {
-    return dayOffset * 24 * 60 + timeToMinutes(timeStr);
-  };
-
-  // Helper: Adjust task to fit within working hours
-  const adjustForWorkingHours = (
-    dayOffset: number,
-    startTime: string,
-    duration: number,
-  ): { dayOffset: number; startTime: string } => {
-    const officeStartMins = timeToMinutes(fund.officeStart || "09:00");
-    const officeEndMins = timeToMinutes(fund.officeEnd || "17:00");
-    const startMins = timeToMinutes(startTime);
-    const endMins = startMins + duration;
-
-    // If task ends after office hours, push to next day
-    if (endMins > officeEndMins) {
-      return {
-        dayOffset: dayOffset + 1,
-        startTime: fund.officeStart || "09:00",
-      };
-    }
-
-    // If task starts before office hours, move to office start
-    if (startMins < officeStartMins) {
-      return {
-        dayOffset,
-        startTime: fund.officeStart || "09:00",
-      };
-    }
-
-    return { dayOffset, startTime };
-  };
+  // Custom update function for Gantt Chart dragging
+  // This needs to update the form state, but respecting dependencies and working hours
+  // The hook provides helper functions, but we must initiate the update via form.setValue / update
+  // Since we are not inside TaskListEditor's useFieldArray here, we manipulate the array and setValue.
 
   const handleTaskUpdate = (
     tempId: string,
@@ -154,263 +161,171 @@ export function SimulationView({
     newStartTime: string,
     newDuration: number,
   ) => {
-    setActiveTasks((prev) => {
-      // First, adjust the primary task for working hours
-      const adjusted = adjustForWorkingHours(newDayOffset, newStartTime, newDuration);
-      
-      // Create a map for quick lookup
-      const taskMap = new Map(prev.map((t) => [t.tempId, t]));
-      const updatedTasks = new Map<string, Task>();
+    const tasks = [...activeTasks];
+    const taskIndex = tasks.findIndex((t) => t.tempId === tempId);
+    if (taskIndex === -1) return;
 
-      // Update the primary task
-      const primaryTask = taskMap.get(tempId);
-      if (primaryTask) {
-        updatedTasks.set(tempId, {
-          ...primaryTask,
-          dayOffset: adjusted.dayOffset,
-          startTime: adjusted.startTime,
-          duration: newDuration,
-        });
-      }
+    // Apply working hours adjustment first
+    const adjusted = adjustForWorkingHours(
+      newDayOffset,
+      newStartTime,
+      newDuration,
+    );
 
-      // Function to recursively update parent (dependency) if pushed forward
-      const updateParents = (updatedTaskId: string) => {
-        const updatedTask = updatedTasks.get(updatedTaskId) || taskMap.get(updatedTaskId);
-        if (!updatedTask || !updatedTask.dependsOnId) return;
+    // Update the task itself
+    const oldTask = tasks[taskIndex];
+    const oldStart = getAbsoluteMinutes(oldTask.dayOffset, oldTask.startTime);
+    const newStart = getAbsoluteMinutes(adjusted.dayOffset, adjusted.startTime);
 
-        // Find the parent task this depends on
-        const parentId = updatedTask.dependsOnId.toString();
-        const parent = updatedTasks.get(parentId) || taskMap.get(parentId);
-        if (!parent) return;
+    tasks[taskIndex] = {
+      ...oldTask,
+      dayOffset: adjusted.dayOffset,
+      startTime: adjusted.startTime,
+      duration: newDuration,
+    };
 
-        // Calculate when the updated task starts
-        const taskStartAbsMins = getAbsoluteMinutes(
-          updatedTask.dayOffset,
-          updatedTask.startTime,
+    // Calculate delta and propagate
+    const delta = newStart - oldStart;
+
+    // We can use the hook logic if we adapt it.
+    // updateDependentTasks expects UseFieldArrayUpdate, but we can mock it or use setValue
+    // Actually, `updateDependentTasks` in the hook is designed for `useFieldArray`.
+    // We can rewrite a simpler version here that works on the array directly since we will just setValue the whole array at end.
+
+    // Update dependencies recursively on the local arrayCopy
+    const updateDeps = (parentId: string, timeDiff: number) => {
+      const dependentIndices = tasks
+        .map((t, i) => (t.dependsOnTempId === parentId ? i : -1))
+        .filter((i) => i !== -1);
+
+      dependentIndices.forEach((idx) => {
+        const depTask = tasks[idx];
+        const currentStart = getAbsoluteMinutes(
+          depTask.dayOffset,
+          depTask.startTime,
         );
+        const newStartTotal = currentStart + timeDiff;
+        let { dayOffset, timeStr } = getDayAndTime(newStartTotal);
 
-        // Calculate when the parent ends
-        const parentStartAbsMins = getAbsoluteMinutes(
-          parent.dayOffset,
-          parent.startTime,
-        );
-        const parentEndAbsMins = parentStartAbsMins + parent.duration;
+        const adj = adjustForWorkingHours(dayOffset, timeStr, depTask.duration);
 
-        // If the task starts before or at the same time as parent ends, push parent forward
-        if (taskStartAbsMins < parentEndAbsMins) {
-          // Calculate how much to push the parent
-          const requiredParentEndMins = taskStartAbsMins;
-          const newParentStartMins = requiredParentEndMins - parent.duration;
-          
-          const newParentDayOffset = Math.floor(newParentStartMins / (24 * 60));
-          const newParentStartMinsInDay = newParentStartMins % (24 * 60);
-          const newParentStartTime = minutesToTime(newParentStartMinsInDay);
+        tasks[idx] = {
+          ...depTask,
+          dayOffset: adj.dayOffset,
+          startTime: adj.startTime,
+        };
 
-          // Adjust for working hours
-          const parentAdjusted = adjustForWorkingHours(
-            newParentDayOffset,
-            newParentStartTime,
-            parent.duration,
-          );
-
-          updatedTasks.set(parentId, {
-            ...parent,
-            dayOffset: parentAdjusted.dayOffset,
-            startTime: parentAdjusted.startTime,
-          });
-
-          // Recursively update the parent's parent
-          updateParents(parentId);
-        }
-      };
-
-      // Function to recursively update dependent tasks
-      const updateDependents = (updatedTaskId: string) => {
-        const updatedTask = updatedTasks.get(updatedTaskId) || taskMap.get(updatedTaskId);
-        if (!updatedTask) return;
-
-        // Find all tasks that depend on this task
-        const dependents = prev.filter(
-          (t) => t.dependsOnId?.toString() === updatedTaskId,
-        );
-
-        dependents.forEach((dependent) => {
-          // Calculate when the dependency ends
-          const depStartAbsMins = getAbsoluteMinutes(
-            updatedTask.dayOffset,
-            updatedTask.startTime,
-          );
-          const depEndAbsMins = depStartAbsMins + updatedTask.duration;
-
-          // Dependent task should start after dependency ends
-          const newDepDayOffset = Math.floor(depEndAbsMins / (24 * 60));
-          const newDepStartMins = depEndAbsMins % (24 * 60);
-          const newDepStartTime = minutesToTime(newDepStartMins);
-
-          // Adjust for working hours
-          const depAdjusted = adjustForWorkingHours(
-            newDepDayOffset,
-            newDepStartTime,
-            dependent.duration,
-          );
-
-          updatedTasks.set(dependent.tempId, {
-            ...dependent,
-            dayOffset: depAdjusted.dayOffset,
-            startTime: depAdjusted.startTime,
-          });
-
-          // Recursively update tasks that depend on this dependent
-          updateDependents(dependent.tempId);
-        });
-      };
-
-      // Start the upward cascade (push parents if needed)
-      updateParents(tempId);
-
-      // Then cascade downward (update dependents)
-      updateDependents(tempId);
-
-      // Merge updates back into the task list
-      return prev.map((t) => updatedTasks.get(t.tempId) || t);
-    });
-  };
-
-  const handleEditorUpdate = (index: number, field: keyof Task, value: any) => {
-    const task = activeTasks[index];
-    if (!task) return;
-
-    // If timing-related fields are updated, use the cascading update logic
-    if (field === "dayOffset" || field === "startTime" || field === "duration") {
-      const updatedTask = { ...task, [field]: value };
-      handleTaskUpdate(
-        task.tempId,
-        field === "dayOffset" ? value : task.dayOffset,
-        field === "startTime" ? value : task.startTime,
-        field === "duration" ? value : task.duration,
-      );
-    } else {
-      // For other fields, just update directly
-      setActiveTasks((prev) => {
-        const next = [...prev];
-        next[index] = { ...next[index], [field]: value };
-        return next;
+        updateDeps(depTask.tempId, timeDiff);
       });
-    }
-  };
+    };
 
-  // Switch Animation Variants
-  const variants = {
-    enter: (direction: number) => ({
-      x: direction > 0 ? 50 : -50,
-      opacity: 0,
-    }),
-    center: {
-      zIndex: 1,
-      x: 0,
-      opacity: 1,
-    },
-    exit: (direction: number) => ({
-      zIndex: 0,
-      x: direction < 0 ? 50 : -50,
-      opacity: 0,
-    }),
+    if (delta !== 0) {
+      updateDeps(tempId, delta);
+    }
+
+    form.setValue(activeTasksFieldName, tasks);
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold">{fund.name}</h2>
-          <p className="text-muted-foreground text-sm">
-            Evaluating{" "}
-            {mode === "current" ? "Current Practice" : "Target Operating Model"}
-          </p>
-        </div>
-
-        <div className="flex items-center gap-4">
-          <div className="flex items-center space-x-2 bg-muted p-2 rounded-lg">
-            <Label
-              htmlFor="mode-switch"
-              className={
-                mode === "current" ? "font-bold" : "text-muted-foreground"
-              }
-            >
-              Current
-            </Label>
-            <Switch
-              id="mode-switch"
-              checked={mode === "target"}
-              onCheckedChange={(checked: boolean) =>
-                setMode(checked ? "target" : "current")
-              }
-            />
-            <Label
-              htmlFor="mode-switch"
-              className={
-                mode === "target" ? "font-bold" : "text-muted-foreground"
-              }
-            >
-              Target
-            </Label>
+    <FormProvider {...form}>
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold">{fund.name}</h2>
+            <p className="text-muted-foreground text-sm">
+              Evaluating{" "}
+              {mode === "current"
+                ? "Current Practice"
+                : "Target Operating Model"}
+            </p>
           </div>
 
-          {onSave && simulationId && (
-            <Button
-              onClick={() => onSave(currentTasks, targetTasks)}
-              disabled={isSaving}
-            >
-              {isSaving ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                <>
-                  <Save className="mr-2 h-4 w-4" />
-                  Save
-                </>
-              )}
-            </Button>
-          )}
-        </div>
-      </div>
-
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={mode}
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -10 }}
-          transition={{ duration: 0.3 }}
-          className="space-y-8"
-        >
-          {/* Interactive Gantt Chart */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Timeline Visualization</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <GanttChart 
-                tasks={activeTasks} 
-                onTaskUpdate={handleTaskUpdate}
-                officeStart={fund.officeStart}
-                officeEnd={fund.officeEnd}
+          <div className="flex items-center gap-4">
+            <div className="flex items-center space-x-2 bg-muted p-2 rounded-lg">
+              <Label
+                htmlFor="mode-switch"
+                className={
+                  mode === "current" ? "font-bold" : "text-muted-foreground"
+                }
+              >
+                Current
+              </Label>
+              <Switch
+                id="mode-switch"
+                checked={mode === "target"}
+                onCheckedChange={(checked: boolean) =>
+                  setMode(checked ? "target" : "current")
+                }
               />
-            </CardContent>
-          </Card>
+              <Label
+                htmlFor="mode-switch"
+                className={
+                  mode === "target" ? "font-bold" : "text-muted-foreground"
+                }
+              >
+                Target
+              </Label>
+            </div>
 
-          {/* Editor Section */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Task Details & Cutoffs</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <TaskEditor tasks={activeTasks} onUpdate={handleEditorUpdate} />
-            </CardContent>
-          </Card>
-        </motion.div>
-      </AnimatePresence>
-    </div>
+            {onSave && simulationId && (
+              <Button
+                onClick={() =>
+                  onSave(
+                    form.getValues().currentTasks,
+                    form.getValues().targetTasks,
+                  )
+                }
+                disabled={isSaving}
+              >
+                {isSaving ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save className="mr-2 h-4 w-4" />
+                    Save
+                  </>
+                )}
+              </Button>
+            )}
+          </div>
+        </div>
+
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={mode}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.3 }}
+            className="space-y-8"
+          >
+            {/* Interactive Gantt Chart */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Timeline Visualization</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <GanttChart
+                  tasks={activeTasks}
+                  onTaskUpdate={handleTaskUpdate}
+                  officeStart={fund.officeStart}
+                  officeEnd={fund.officeEnd}
+                />
+              </CardContent>
+            </Card>
+
+            {/* Editor Section */}
+            <TaskListEditor
+              name={activeTasksFieldName}
+              masterTasks={masterTasks}
+              className="w-full"
+            />
+          </motion.div>
+        </AnimatePresence>
+      </div>
+    </FormProvider>
   );
 }
