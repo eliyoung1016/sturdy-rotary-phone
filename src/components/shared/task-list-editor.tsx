@@ -112,29 +112,33 @@ function SortableTaskItem({
   );
 }
 
-const TaskRow = memo(function TaskRow({
-  id,
-  index,
-  controlName,
-  masterTasks,
-  readOnly,
-  update,
-  remove, // Added remove prop
-  getValues,
-  updateTaskOnMove,
-  recalculateDependentTasks,
-}: {
+interface TaskRowProps {
   id: string;
   index: number;
   controlName: string;
   masterTasks: MasterTask[];
   readOnly: boolean;
   update: UseFieldArrayUpdate<any, any>;
-  remove: UseFieldArrayRemove; // Added type
+  remove: UseFieldArrayRemove;
+  replace: (items: any[]) => void;
   getValues: any;
   updateTaskOnMove: any;
   recalculateDependentTasks: any;
-}) {
+}
+
+const TaskRow = ({
+  id,
+  index,
+  controlName,
+  masterTasks,
+  readOnly,
+  update,
+  remove,
+  replace,
+  getValues,
+  updateTaskOnMove,
+  recalculateDependentTasks,
+}: TaskRowProps) => {
   const { register, setValue, watch } = useFormContext();
   const taskValues = watch(`${controlName}.${index}`);
   const [openPopoverId, setOpenPopoverId] = useState<boolean>(false);
@@ -354,21 +358,29 @@ const TaskRow = memo(function TaskRow({
               onFocus={(e) => {
                 focusValueRef.current = e.target.value;
               }}
-              {...register(`${controlName}.${index}.startTime`, {
-                onChange: (e) => {
-                  const newValue = e.target.value;
-                  const currentTasks = [...getValues(controlName)];
-                  focusValueRef.current = newValue;
+              {...register(`${controlName}.${index}.startTime`)}
+              onBlur={(e) => {
+                const newValue = e.target.value;
+                if (newValue === focusValueRef.current) return;
 
-                  const updatedTasks = updateTaskOnMove(
-                    index,
-                    taskValues.dayOffset,
-                    newValue,
-                    currentTasks,
-                  );
-                  setValue(controlName, updatedTasks);
-                },
-              })}
+                const currentTasks = getValues(controlName).map((t: any) => ({
+                  ...t,
+                }));
+
+                const updatedTasks = updateTaskOnMove(
+                  index,
+                  taskValues.dayOffset,
+                  newValue,
+                  currentTasks,
+                );
+                replace(updatedTasks);
+                focusValueRef.current = newValue;
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.currentTarget.blur();
+                }
+              }}
             />
 
             <Input
@@ -376,20 +388,34 @@ const TaskRow = memo(function TaskRow({
               disabled={readOnly || taskValues.type === "CUTOFF"}
               className="h-9 text-xs px-1"
               value={taskValues.duration ?? 0}
+              onFocus={(e) => {
+                focusValueRef.current = e.target.value;
+              }}
               {...register(`${controlName}.${index}.duration`, {
                 valueAsNumber: true,
-                onChange: (e) => {
-                  const newDuration = Number(e.target.value);
-                  const currentTasks = [...getValues(controlName)];
-                  currentTasks[index].duration = newDuration;
-
-                  const updatedTasks = recalculateDependentTasks(
-                    currentTasks[index].tempId,
-                    currentTasks,
-                  );
-                  setValue(controlName, updatedTasks);
-                },
               })}
+              onBlur={(e) => {
+                const newDuration = Number(e.target.value);
+                if (Number(focusValueRef.current) === newDuration) return;
+
+                const currentTasks = getValues(controlName).map((t: any) => ({
+                  ...t,
+                }));
+
+                currentTasks[index].duration = newDuration;
+
+                const updatedTasks = recalculateDependentTasks(
+                  currentTasks[index].tempId,
+                  currentTasks,
+                );
+                replace(updatedTasks);
+                focusValueRef.current = newDuration.toString();
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.currentTarget.blur();
+                }
+              }}
             />
           </div>
 
@@ -704,7 +730,7 @@ const TaskRow = memo(function TaskRow({
       )}
     </SortableTaskItem>
   );
-});
+};
 
 export function TaskListEditor({
   name,
@@ -715,7 +741,7 @@ export function TaskListEditor({
   workingHours,
 }: TaskListEditorProps) {
   const { control, getValues } = useFormContext();
-  const { fields, append, remove, update, move } = useFieldArray({
+  const { fields, append, remove, update, move, replace } = useFieldArray({
     control,
     name,
   });
@@ -745,11 +771,6 @@ export function TaskListEditor({
 
       if (oldIndex !== -1 && newIndex !== -1) {
         move(oldIndex, newIndex);
-
-        // Also update dependencies based on move?
-        // Wait, updateTaskOnMove is usually for time changes.
-        // If we just reorder, dependencies might need recalculation if sequence mattered for implicit deps?
-        // But here we just reorder the list visually.
       }
     }
   };
@@ -838,6 +859,7 @@ export function TaskListEditor({
                   readOnly={readOnly}
                   update={update}
                   remove={remove}
+                  replace={replace}
                   getValues={getValues}
                   updateTaskOnMove={updateTaskOnMove}
                   recalculateDependentTasks={recalculateDependentTasks}
