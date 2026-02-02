@@ -41,30 +41,7 @@ export function useTaskDependencies(workingHours?: WorkingHours) {
     startTime: string,
     duration: number,
   ): { dayOffset: number; startTime: string } => {
-    if (!workingHours) return { dayOffset, startTime };
-
-    const officeStartMins = timeToMinutes(workingHours.start);
-    const officeEndMins = timeToMinutes(workingHours.end);
-    let startMins = timeToMinutes(startTime);
-    const endMins = startMins + duration;
-
-    // If task ends after office hours, push to next day
-    if (endMins > officeEndMins) {
-      // Push to next day start
-      return {
-        dayOffset: dayOffset + 1,
-        startTime: workingHours.start,
-      };
-    }
-
-    // If task starts before office hours, move to office start
-    if (startMins < officeStartMins) {
-      return {
-        dayOffset,
-        startTime: workingHours.start,
-      };
-    }
-
+    // Disabled office hour limitation as per user request
     return { dayOffset, startTime };
   };
 
@@ -75,83 +52,17 @@ export function useTaskDependencies(workingHours?: WorkingHours) {
     return { dayOffset, timeStr };
   };
 
-  const updateDependentTasks = <T extends TaskItem>(
-    changedTaskTempId: string,
-    timeDelta: number,
+  // Recurvsively update dependent tasks based on parent's new state
+  const recalculateDependentTasks = <T extends TaskItem>(
+    changedTaskTempId: string, // The ID of the task that changed (parent)
     currentTasks: T[],
-    update: UseFieldArrayUpdate<any, any>,
     visited = new Set<string>(),
-  ) => {
-    if (visited.has(changedTaskTempId)) return;
+  ): T[] => {
+    if (visited.has(changedTaskTempId)) return currentTasks;
     visited.add(changedTaskTempId);
 
-    const dependentTasks = currentTasks
-      .map((t, index) => ({ task: t, index }))
-      // Handle both dependsOnTempId (correct field) and dependsOnId (old field) if necessary
-      // But we should stick to a consistent field name.
-      // TemplateForm used dependsOnTempId. Simulation used dependsOnId (numeric) usually but mapped to tempId strings internally?
-      // Let's assume uniform dependsOnTempId.
-      .filter(
-        ({ task }) =>
-          task.dependsOnTempId === changedTaskTempId ||
-          (task as any).dependsOnId?.toString() === changedTaskTempId,
-      );
-
-    dependentTasks.forEach(({ task: depTask, index: depIndex }) => {
-      // If the dependent task has NO_RELATION, do not shift it automatically
-      // unless we want to maintain the gap? Use case says "no time relation", so assume we don't propagate.
-      if (depTask.dependencyType === "NO_RELATION") return;
-
-      const currentStart = getAbsoluteMinutes(
-        depTask.dayOffset,
-        depTask.startTime,
-      );
-      const newStartTotal = currentStart + timeDelta;
-      let { dayOffset, timeStr } = getDayAndTime(newStartTotal);
-
-      // Apply working hours adjustment
-      if (workingHours) {
-        const adjusted = adjustForWorkingHours(
-          dayOffset,
-          timeStr,
-          depTask.duration,
-        );
-        dayOffset = adjusted.dayOffset;
-        timeStr = adjusted.startTime;
-      }
-
-      const updatedTask = {
-        ...currentTasks[depIndex],
-        dayOffset,
-        startTime: timeStr,
-      };
-
-      currentTasks[depIndex] = updatedTask;
-      update(depIndex, updatedTask);
-
-      updateDependentTasks(
-        depTask.tempId,
-        timeDelta,
-        currentTasks,
-        update,
-        visited,
-      );
-    });
-  };
-
-  const enforceDependencyConstraint = <T extends TaskItem>(
-    childIndex: number,
-    parentId: string,
-    currentTasks: T[],
-    update: UseFieldArrayUpdate<any, any>,
-  ) => {
-    const childTask = currentTasks[childIndex];
-
-    // 1. Check dependency type
-    if (childTask.dependencyType === "NO_RELATION") return;
-
-    const parentTask = currentTasks.find((t) => t.tempId === parentId);
-    if (!parentTask) return;
+    const parentTask = currentTasks.find((t) => t.tempId === changedTaskTempId);
+    if (!parentTask) return currentTasks;
 
     const parentStart = getAbsoluteMinutes(
       parentTask.dayOffset,
@@ -159,45 +70,151 @@ export function useTaskDependencies(workingHours?: WorkingHours) {
     );
     const parentEnd = parentStart + (parentTask.duration || 0);
 
-    const childStart = getAbsoluteMinutes(
-      childTask.dayOffset,
-      childTask.startTime,
-    );
+    // Find children
+    const dependentTasks = currentTasks
+      .map((t, index) => ({ task: t, index }))
+      .filter(
+        ({ task }) =>
+          task.dependsOnTempId === changedTaskTempId ||
+          (task as any).dependsOnId?.toString() === changedTaskTempId,
+      );
 
-    // Calculate required start time based on delay
-    // IMMEDIATE = 0 delay effectively
-    const requiredDelay =
-      childTask.dependencyType === "TIME_LAG"
-        ? childTask.dependencyDelay || 0
-        : 0;
-    const requiredStart = parentEnd + requiredDelay;
+    dependentTasks.forEach(({ task: childTask, index: childIndex }) => {
+      if (childTask.dependencyType === "NO_RELATION") return;
 
-    if (childStart < requiredStart) {
-      let { dayOffset, timeStr } = getDayAndTime(requiredStart);
+      const requiredDelay =
+        childTask.dependencyType === "TIME_LAG"
+          ? childTask.dependencyDelay || 0
+          : 0;
 
-      // Apply working hours adjustment
-      if (workingHours) {
-        const adjusted = adjustForWorkingHours(
+      const newStartTotal = parentEnd + requiredDelay;
+
+      // Check if update is needed
+      const currentChildStart = getAbsoluteMinutes(
+        childTask.dayOffset,
+        childTask.startTime,
+      );
+
+      if (currentChildStart !== newStartTotal) {
+        let { dayOffset, timeStr } = getDayAndTime(newStartTotal);
+
+        if (workingHours) {
+          const adjusted = adjustForWorkingHours(
+            dayOffset,
+            timeStr,
+            childTask.duration,
+          );
+          dayOffset = adjusted.dayOffset;
+          timeStr = adjusted.startTime;
+        }
+
+        const updatedTask = {
+          ...currentTasks[childIndex],
           dayOffset,
-          timeStr,
-          childTask.duration,
-        );
-        dayOffset = adjusted.dayOffset;
-        timeStr = adjusted.startTime;
+          startTime: timeStr,
+        };
+        currentTasks[childIndex] = updatedTask;
+
+        // Recurse
+        recalculateDependentTasks(childTask.tempId, currentTasks, visited);
       }
+    });
 
-      const newChildTask = {
-        ...childTask,
-        dayOffset,
-        startTime: timeStr,
+    return currentTasks;
+  };
+
+  // Handle manual move of a task:
+  // 1. Update its relationship with parent (update delay)
+  // 2. Cascade changes to children
+  const updateTaskOnMove = <T extends TaskItem>(
+    taskIndex: number,
+    newDayOffset: number,
+    newStartTime: string,
+    currentTasks: T[],
+  ): T[] => {
+    const task = currentTasks[taskIndex];
+    if (!task) return currentTasks;
+
+    const newStartTotal = getAbsoluteMinutes(newDayOffset, newStartTime);
+
+    // 1. Check parent constraint
+    const parentId = task.dependsOnTempId || (task as any).dependsOnId;
+    if (parentId) {
+      const parentTask = currentTasks.find((t) => t.tempId === parentId);
+      if (parentTask) {
+        const parentStart = getAbsoluteMinutes(
+          parentTask.dayOffset,
+          parentTask.startTime,
+        );
+        const parentEnd = parentStart + (parentTask.duration || 0);
+
+        if (newStartTotal < parentEnd) {
+          // Constraint violation: tried to move before parent ends.
+          // Snap to parent end.
+          const { dayOffset, timeStr } = getDayAndTime(parentEnd);
+
+          // Update task to snap
+          currentTasks[taskIndex] = {
+            ...task,
+            dayOffset,
+            startTime: timeStr,
+            dependencyType: "IMMEDIATE",
+            dependencyDelay: 0,
+          };
+
+          // Since we effectively "moved" it to a valid spot, we propagate from there
+          // Recurse to children
+          return recalculateDependentTasks(task.tempId, currentTasks);
+        } else {
+          // Valid move (after parent end)
+          // Update delay
+          const delay = newStartTotal - parentEnd;
+          currentTasks[taskIndex] = {
+            ...task,
+            dayOffset: newDayOffset,
+            startTime: newStartTime,
+            dependencyType: delay > 0 ? "TIME_LAG" : "IMMEDIATE",
+            dependencyDelay: delay,
+          };
+        }
+      } else {
+        // Parent not found, just update
+        currentTasks[taskIndex] = {
+          ...task,
+          dayOffset: newDayOffset,
+          startTime: newStartTime,
+        };
+      }
+    } else {
+      // No parent, straight update
+      currentTasks[taskIndex] = {
+        ...task,
+        dayOffset: newDayOffset,
+        startTime: newStartTime,
       };
-
-      currentTasks[childIndex] = newChildTask;
-      update(childIndex, newChildTask);
-
-      const delta = requiredStart - childStart;
-      updateDependentTasks(childTask.tempId, delta, currentTasks, update);
     }
+
+    // 2. Cascade to children
+    return recalculateDependentTasks(task.tempId, currentTasks);
+  };
+
+  // Re-export this for when duration changes etc
+  const updateDependentTasks = (
+    changedTaskTempId: string,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    _timeDelta: number,
+    currentTasks: any[],
+  ) => {
+    // Ignore delta, perform full path recalculation
+    return recalculateDependentTasks(changedTaskTempId, currentTasks);
+  };
+
+  const enforceDependencyConstraint = <T extends TaskItem>(
+    childIndex: number,
+    parentId: string,
+    currentTasks: T[],
+  ) => {
+    recalculateDependentTasks(parentId, currentTasks);
   };
 
   return {
@@ -206,5 +223,7 @@ export function useTaskDependencies(workingHours?: WorkingHours) {
     updateDependentTasks,
     enforceDependencyConstraint,
     adjustForWorkingHours,
+    updateTaskOnMove,
+    recalculateDependentTasks,
   };
 }

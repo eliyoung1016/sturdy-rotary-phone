@@ -23,7 +23,7 @@ import {
   Settings2,
   Trash2,
 } from "lucide-react";
-import { useId, useState } from "react";
+import { useId, useState, useRef } from "react";
 import { useFieldArray, useFormContext } from "react-hook-form";
 
 import { Button } from "@/components/ui/button";
@@ -121,12 +121,9 @@ export function TaskListEditor({
   const [openAttributesPopoverId, setOpenAttributesPopoverId] = useState<
     string | null
   >(null);
+  const focusValueRef = useRef<string>("");
 
-  const {
-    getAbsoluteMinutes,
-    updateDependentTasks,
-    enforceDependencyConstraint,
-  } = useTaskDependencies();
+  const { updateTaskOnMove, recalculateDependentTasks } = useTaskDependencies();
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -385,35 +382,22 @@ export function TaskListEditor({
                               const newType = val as "PROCESS" | "CUTOFF";
                               const newDuration =
                                 newType === "CUTOFF" ? 0 : taskValues.duration;
-                              const currentTasks = getValues(name);
+                              const currentTasks = [...getValues(name)];
 
-                              const updatedTask = {
+                              currentTasks[index] = {
                                 ...currentTasks[index],
                                 type: newType,
                                 duration: newDuration,
                               };
 
-                              update(index, updatedTask);
-                              currentTasks[index] = updatedTask;
-
                               if (newDuration !== taskValues.duration) {
-                                const childrenIndices = currentTasks
-                                  .map((t: TaskItem, i: number) =>
-                                    t.dependsOnTempId ===
-                                    currentTasks[index].tempId
-                                      ? i
-                                      : -1,
-                                  )
-                                  .filter((i: number) => i !== -1);
-
-                                childrenIndices.forEach((childIdx: number) =>
-                                  enforceDependencyConstraint(
-                                    childIdx,
-                                    currentTasks[index].tempId,
-                                    currentTasks,
-                                    update,
-                                  ),
+                                const updatedTasks = recalculateDependentTasks(
+                                  currentTasks[index].tempId,
+                                  currentTasks,
                                 );
+                                setValue(name, updatedTasks);
+                              } else {
+                                setValue(name, currentTasks);
                               }
                             }}
                           >
@@ -434,32 +418,14 @@ export function TaskListEditor({
                             value={taskValues.dayOffset.toString()}
                             onValueChange={(val) => {
                               const newOffset = Number(val);
-                              const currentTasks = getValues(name);
-                              const oldTask = currentTasks[index];
-                              const oldStart = getAbsoluteMinutes(
-                                oldTask.dayOffset,
-                                oldTask.startTime || "00:00",
-                              );
-                              const newStart = getAbsoluteMinutes(
+                              const currentTasks = [...getValues(name)];
+                              const updatedTasks = updateTaskOnMove(
+                                index,
                                 newOffset,
-                                oldTask.startTime || "00:00",
+                                taskValues.startTime || "09:00",
+                                currentTasks,
                               );
-                              const delta = newStart - oldStart;
-
-                              const updatedTask = {
-                                ...oldTask,
-                                dayOffset: newOffset,
-                              };
-                              update(index, updatedTask);
-                              currentTasks[index] = updatedTask;
-
-                              if (delta !== 0)
-                                updateDependentTasks(
-                                  oldTask.tempId,
-                                  delta,
-                                  currentTasks,
-                                  update,
-                                );
+                              setValue(name, updatedTasks);
                             }}
                           >
                             <SelectTrigger className="h-9 text-xs px-1">
@@ -479,31 +445,23 @@ export function TaskListEditor({
                             disabled={readOnly}
                             type="time"
                             className="h-9 text-xs px-1"
+                            value={taskValues.startTime || ""}
+                            onFocus={(e) => {
+                              focusValueRef.current = e.target.value;
+                            }}
                             {...register(`${name}.${index}.startTime`, {
                               onChange: (e) => {
                                 const newValue = e.target.value;
-                                const currentTasks = getValues(name);
-                                const oldTask = currentTasks[index];
-                                const oldStart = getAbsoluteMinutes(
-                                  oldTask.dayOffset,
-                                  oldTask.startTime || "00:00",
-                                );
-                                const newStart = getAbsoluteMinutes(
-                                  oldTask.dayOffset,
+                                const currentTasks = [...getValues(name)];
+                                focusValueRef.current = newValue;
+
+                                const updatedTasks = updateTaskOnMove(
+                                  index,
+                                  taskValues.dayOffset,
                                   newValue,
+                                  currentTasks,
                                 );
-                                const delta = newStart - oldStart;
-
-                                currentTasks[index].startTime = newValue;
-
-                                if (delta !== 0) {
-                                  updateDependentTasks(
-                                    oldTask.tempId,
-                                    delta,
-                                    currentTasks,
-                                    update,
-                                  );
-                                }
+                                setValue(name, updatedTasks);
                               },
                             })}
                           />
@@ -512,30 +470,19 @@ export function TaskListEditor({
                             type="number"
                             disabled={readOnly || taskValues.type === "CUTOFF"}
                             className="h-9 text-xs px-1"
+                            value={taskValues.duration ?? 0}
                             {...register(`${name}.${index}.duration`, {
                               valueAsNumber: true,
                               onChange: (e) => {
                                 const newDuration = Number(e.target.value);
-                                const currentTasks = getValues(name);
+                                const currentTasks = [...getValues(name)];
                                 currentTasks[index].duration = newDuration;
 
-                                const childrenIndices = currentTasks
-                                  .map((t: TaskItem, i: number) =>
-                                    t.dependsOnTempId ===
-                                    currentTasks[index].tempId
-                                      ? i
-                                      : -1,
-                                  )
-                                  .filter((i: number) => i !== -1);
-
-                                childrenIndices.forEach((childIdx: number) =>
-                                  enforceDependencyConstraint(
-                                    childIdx,
-                                    currentTasks[index].tempId,
-                                    currentTasks,
-                                    update,
-                                  ),
+                                const updatedTasks = recalculateDependentTasks(
+                                  currentTasks[index].tempId,
+                                  currentTasks,
                                 );
+                                setValue(name, updatedTasks);
                               },
                             })}
                           />
@@ -587,9 +534,9 @@ export function TaskListEditor({
                                     onValueChange={(val) => {
                                       const newVal =
                                         val === "none" ? undefined : val;
-                                      const currentTasks = getValues(name);
+                                      const currentTasks = [...getValues(name)];
 
-                                      const updatedTask = {
+                                      currentTasks[index] = {
                                         ...currentTasks[index],
                                         dependsOnTempId: newVal,
                                         ...(newVal
@@ -600,16 +547,15 @@ export function TaskListEditor({
                                             }),
                                       };
 
-                                      update(index, updatedTask);
-
                                       if (newVal) {
-                                        currentTasks[index] = updatedTask;
-                                        enforceDependencyConstraint(
-                                          index,
-                                          newVal,
-                                          currentTasks,
-                                          update,
-                                        );
+                                        const updatedTasks =
+                                          recalculateDependentTasks(
+                                            newVal,
+                                            currentTasks,
+                                          );
+                                        setValue(name, updatedTasks);
+                                      } else {
+                                        setValue(name, currentTasks);
                                       }
                                     }}
                                   >
@@ -647,21 +593,21 @@ export function TaskListEditor({
                                       taskValues.dependencyType || "IMMEDIATE"
                                     }
                                     onValueChange={(val) => {
-                                      const currentTasks = getValues(name);
-                                      const updatedTask = {
+                                      const currentTasks = [...getValues(name)];
+                                      currentTasks[index] = {
                                         ...currentTasks[index],
                                         dependencyType: val,
                                       };
-                                      update(index, updatedTask);
-                                      currentTasks[index] = updatedTask;
 
                                       if (taskValues.dependsOnTempId) {
-                                        enforceDependencyConstraint(
-                                          index,
-                                          taskValues.dependsOnTempId,
-                                          currentTasks,
-                                          update,
-                                        );
+                                        const updatedTasks =
+                                          recalculateDependentTasks(
+                                            taskValues.dependsOnTempId,
+                                            currentTasks,
+                                          );
+                                        setValue(name, updatedTasks);
+                                      } else {
+                                        setValue(name, currentTasks);
                                       }
                                     }}
                                   >
@@ -701,21 +647,23 @@ export function TaskListEditor({
                                       value={taskValues.dependencyDelay ?? 0}
                                       onChange={(e) => {
                                         const val = Number(e.target.value);
-                                        const currentTasks = getValues(name);
-                                        const updatedTask = {
+                                        const currentTasks = [
+                                          ...getValues(name),
+                                        ];
+                                        currentTasks[index] = {
                                           ...currentTasks[index],
                                           dependencyDelay: val,
                                         };
-                                        update(index, updatedTask);
-                                        currentTasks[index] = updatedTask;
 
                                         if (taskValues.dependsOnTempId) {
-                                          enforceDependencyConstraint(
-                                            index,
-                                            taskValues.dependsOnTempId,
-                                            currentTasks,
-                                            update,
-                                          );
+                                          const updatedTasks =
+                                            recalculateDependentTasks(
+                                              taskValues.dependsOnTempId,
+                                              currentTasks,
+                                            );
+                                          setValue(name, updatedTasks);
+                                        } else {
+                                          setValue(name, currentTasks);
                                         }
                                       }}
                                     />
