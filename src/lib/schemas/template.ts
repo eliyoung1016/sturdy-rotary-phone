@@ -17,6 +17,10 @@ export const templateTaskSchema = z.object({
   // UI usage
   tempId: z.string(),
   dependsOnTempId: z.string().optional(), // Single dependency now
+  dependencyType: z
+    .enum(["IMMEDIATE", "TIME_LAG", "NO_RELATION"])
+    .default("IMMEDIATE"),
+  dependencyDelay: z.number().optional().default(0),
 
   saveToMaster: z.boolean(),
 });

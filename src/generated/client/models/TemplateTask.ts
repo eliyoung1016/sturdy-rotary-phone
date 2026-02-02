@@ -34,6 +34,7 @@ export type TemplateTaskAvgAggregateOutputType = {
   sequenceOrder: number | null
   dayOffset: number | null
   dependsOnId: number | null
+  dependencyDelay: number | null
 }
 
 export type TemplateTaskSumAggregateOutputType = {
@@ -44,6 +45,7 @@ export type TemplateTaskSumAggregateOutputType = {
   sequenceOrder: number | null
   dayOffset: number | null
   dependsOnId: number | null
+  dependencyDelay: number | null
 }
 
 export type TemplateTaskMinAggregateOutputType = {
@@ -59,6 +61,8 @@ export type TemplateTaskMinAggregateOutputType = {
   color: string | null
   isCashConfirmed: boolean | null
   dependsOnId: number | null
+  dependencyType: string | null
+  dependencyDelay: number | null
 }
 
 export type TemplateTaskMaxAggregateOutputType = {
@@ -74,6 +78,8 @@ export type TemplateTaskMaxAggregateOutputType = {
   color: string | null
   isCashConfirmed: boolean | null
   dependsOnId: number | null
+  dependencyType: string | null
+  dependencyDelay: number | null
 }
 
 export type TemplateTaskCountAggregateOutputType = {
@@ -89,6 +95,8 @@ export type TemplateTaskCountAggregateOutputType = {
   color: number
   isCashConfirmed: number
   dependsOnId: number
+  dependencyType: number
+  dependencyDelay: number
   _all: number
 }
 
@@ -101,6 +109,7 @@ export type TemplateTaskAvgAggregateInputType = {
   sequenceOrder?: true
   dayOffset?: true
   dependsOnId?: true
+  dependencyDelay?: true
 }
 
 export type TemplateTaskSumAggregateInputType = {
@@ -111,6 +120,7 @@ export type TemplateTaskSumAggregateInputType = {
   sequenceOrder?: true
   dayOffset?: true
   dependsOnId?: true
+  dependencyDelay?: true
 }
 
 export type TemplateTaskMinAggregateInputType = {
@@ -126,6 +136,8 @@ export type TemplateTaskMinAggregateInputType = {
   color?: true
   isCashConfirmed?: true
   dependsOnId?: true
+  dependencyType?: true
+  dependencyDelay?: true
 }
 
 export type TemplateTaskMaxAggregateInputType = {
@@ -141,6 +153,8 @@ export type TemplateTaskMaxAggregateInputType = {
   color?: true
   isCashConfirmed?: true
   dependsOnId?: true
+  dependencyType?: true
+  dependencyDelay?: true
 }
 
 export type TemplateTaskCountAggregateInputType = {
@@ -156,6 +170,8 @@ export type TemplateTaskCountAggregateInputType = {
   color?: true
   isCashConfirmed?: true
   dependsOnId?: true
+  dependencyType?: true
+  dependencyDelay?: true
   _all?: true
 }
 
@@ -258,6 +274,8 @@ export type TemplateTaskGroupByOutputType = {
   color: string | null
   isCashConfirmed: boolean
   dependsOnId: number | null
+  dependencyType: string
+  dependencyDelay: number | null
   _count: TemplateTaskCountAggregateOutputType | null
   _avg: TemplateTaskAvgAggregateOutputType | null
   _sum: TemplateTaskSumAggregateOutputType | null
@@ -296,6 +314,8 @@ export type TemplateTaskWhereInput = {
   color?: Prisma.StringNullableFilter<"TemplateTask"> | string | null
   isCashConfirmed?: Prisma.BoolFilter<"TemplateTask"> | boolean
   dependsOnId?: Prisma.IntNullableFilter<"TemplateTask"> | number | null
+  dependencyType?: Prisma.StringFilter<"TemplateTask"> | string
+  dependencyDelay?: Prisma.IntNullableFilter<"TemplateTask"> | number | null
   template?: Prisma.XOR<Prisma.TemplateScalarRelationFilter, Prisma.TemplateWhereInput>
   masterTask?: Prisma.XOR<Prisma.MasterTaskNullableScalarRelationFilter, Prisma.MasterTaskWhereInput> | null
   dependsOn?: Prisma.XOR<Prisma.TemplateTaskNullableScalarRelationFilter, Prisma.TemplateTaskWhereInput> | null
@@ -315,6 +335,8 @@ export type TemplateTaskOrderByWithRelationInput = {
   color?: Prisma.SortOrderInput | Prisma.SortOrder
   isCashConfirmed?: Prisma.SortOrder
   dependsOnId?: Prisma.SortOrderInput | Prisma.SortOrder
+  dependencyType?: Prisma.SortOrder
+  dependencyDelay?: Prisma.SortOrderInput | Prisma.SortOrder
   template?: Prisma.TemplateOrderByWithRelationInput
   masterTask?: Prisma.MasterTaskOrderByWithRelationInput
   dependsOn?: Prisma.TemplateTaskOrderByWithRelationInput
@@ -337,6 +359,8 @@ export type TemplateTaskWhereUniqueInput = Prisma.AtLeast<{
   color?: Prisma.StringNullableFilter<"TemplateTask"> | string | null
   isCashConfirmed?: Prisma.BoolFilter<"TemplateTask"> | boolean
   dependsOnId?: Prisma.IntNullableFilter<"TemplateTask"> | number | null
+  dependencyType?: Prisma.StringFilter<"TemplateTask"> | string
+  dependencyDelay?: Prisma.IntNullableFilter<"TemplateTask"> | number | null
   template?: Prisma.XOR<Prisma.TemplateScalarRelationFilter, Prisma.TemplateWhereInput>
   masterTask?: Prisma.XOR<Prisma.MasterTaskNullableScalarRelationFilter, Prisma.MasterTaskWhereInput> | null
   dependsOn?: Prisma.XOR<Prisma.TemplateTaskNullableScalarRelationFilter, Prisma.TemplateTaskWhereInput> | null
@@ -356,6 +380,8 @@ export type TemplateTaskOrderByWithAggregationInput = {
   color?: Prisma.SortOrderInput | Prisma.SortOrder
   isCashConfirmed?: Prisma.SortOrder
   dependsOnId?: Prisma.SortOrderInput | Prisma.SortOrder
+  dependencyType?: Prisma.SortOrder
+  dependencyDelay?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.TemplateTaskCountOrderByAggregateInput
   _avg?: Prisma.TemplateTaskAvgOrderByAggregateInput
   _max?: Prisma.TemplateTaskMaxOrderByAggregateInput
@@ -379,6 +405,8 @@ export type TemplateTaskScalarWhereWithAggregatesInput = {
   color?: Prisma.StringNullableWithAggregatesFilter<"TemplateTask"> | string | null
   isCashConfirmed?: Prisma.BoolWithAggregatesFilter<"TemplateTask"> | boolean
   dependsOnId?: Prisma.IntNullableWithAggregatesFilter<"TemplateTask"> | number | null
+  dependencyType?: Prisma.StringWithAggregatesFilter<"TemplateTask"> | string
+  dependencyDelay?: Prisma.IntNullableWithAggregatesFilter<"TemplateTask"> | number | null
 }
 
 export type TemplateTaskCreateInput = {
@@ -390,6 +418,8 @@ export type TemplateTaskCreateInput = {
   type?: string
   color?: string | null
   isCashConfirmed?: boolean
+  dependencyType?: string
+  dependencyDelay?: number | null
   template: Prisma.TemplateCreateNestedOneWithoutTemplateTasksInput
   masterTask?: Prisma.MasterTaskCreateNestedOneWithoutTemplateTasksInput
   dependsOn?: Prisma.TemplateTaskCreateNestedOneWithoutDependentsInput
@@ -409,6 +439,8 @@ export type TemplateTaskUncheckedCreateInput = {
   color?: string | null
   isCashConfirmed?: boolean
   dependsOnId?: number | null
+  dependencyType?: string
+  dependencyDelay?: number | null
   dependents?: Prisma.TemplateTaskUncheckedCreateNestedManyWithoutDependsOnInput
 }
 
@@ -421,6 +453,8 @@ export type TemplateTaskUpdateInput = {
   type?: Prisma.StringFieldUpdateOperationsInput | string
   color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isCashConfirmed?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  dependencyType?: Prisma.StringFieldUpdateOperationsInput | string
+  dependencyDelay?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   template?: Prisma.TemplateUpdateOneRequiredWithoutTemplateTasksNestedInput
   masterTask?: Prisma.MasterTaskUpdateOneWithoutTemplateTasksNestedInput
   dependsOn?: Prisma.TemplateTaskUpdateOneWithoutDependentsNestedInput
@@ -440,6 +474,8 @@ export type TemplateTaskUncheckedUpdateInput = {
   color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isCashConfirmed?: Prisma.BoolFieldUpdateOperationsInput | boolean
   dependsOnId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  dependencyType?: Prisma.StringFieldUpdateOperationsInput | string
+  dependencyDelay?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   dependents?: Prisma.TemplateTaskUncheckedUpdateManyWithoutDependsOnNestedInput
 }
 
@@ -456,6 +492,8 @@ export type TemplateTaskCreateManyInput = {
   color?: string | null
   isCashConfirmed?: boolean
   dependsOnId?: number | null
+  dependencyType?: string
+  dependencyDelay?: number | null
 }
 
 export type TemplateTaskUpdateManyMutationInput = {
@@ -467,6 +505,8 @@ export type TemplateTaskUpdateManyMutationInput = {
   type?: Prisma.StringFieldUpdateOperationsInput | string
   color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isCashConfirmed?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  dependencyType?: Prisma.StringFieldUpdateOperationsInput | string
+  dependencyDelay?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
 
 export type TemplateTaskUncheckedUpdateManyInput = {
@@ -482,6 +522,8 @@ export type TemplateTaskUncheckedUpdateManyInput = {
   color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isCashConfirmed?: Prisma.BoolFieldUpdateOperationsInput | boolean
   dependsOnId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  dependencyType?: Prisma.StringFieldUpdateOperationsInput | string
+  dependencyDelay?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
 
 export type TemplateTaskListRelationFilter = {
@@ -512,6 +554,8 @@ export type TemplateTaskCountOrderByAggregateInput = {
   color?: Prisma.SortOrder
   isCashConfirmed?: Prisma.SortOrder
   dependsOnId?: Prisma.SortOrder
+  dependencyType?: Prisma.SortOrder
+  dependencyDelay?: Prisma.SortOrder
 }
 
 export type TemplateTaskAvgOrderByAggregateInput = {
@@ -522,6 +566,7 @@ export type TemplateTaskAvgOrderByAggregateInput = {
   sequenceOrder?: Prisma.SortOrder
   dayOffset?: Prisma.SortOrder
   dependsOnId?: Prisma.SortOrder
+  dependencyDelay?: Prisma.SortOrder
 }
 
 export type TemplateTaskMaxOrderByAggregateInput = {
@@ -537,6 +582,8 @@ export type TemplateTaskMaxOrderByAggregateInput = {
   color?: Prisma.SortOrder
   isCashConfirmed?: Prisma.SortOrder
   dependsOnId?: Prisma.SortOrder
+  dependencyType?: Prisma.SortOrder
+  dependencyDelay?: Prisma.SortOrder
 }
 
 export type TemplateTaskMinOrderByAggregateInput = {
@@ -552,6 +599,8 @@ export type TemplateTaskMinOrderByAggregateInput = {
   color?: Prisma.SortOrder
   isCashConfirmed?: Prisma.SortOrder
   dependsOnId?: Prisma.SortOrder
+  dependencyType?: Prisma.SortOrder
+  dependencyDelay?: Prisma.SortOrder
 }
 
 export type TemplateTaskSumOrderByAggregateInput = {
@@ -562,6 +611,7 @@ export type TemplateTaskSumOrderByAggregateInput = {
   sequenceOrder?: Prisma.SortOrder
   dayOffset?: Prisma.SortOrder
   dependsOnId?: Prisma.SortOrder
+  dependencyDelay?: Prisma.SortOrder
 }
 
 export type TemplateTaskCreateNestedManyWithoutMasterTaskInput = {
@@ -668,6 +718,14 @@ export type TemplateTaskUncheckedCreateNestedManyWithoutDependsOnInput = {
   connect?: Prisma.TemplateTaskWhereUniqueInput | Prisma.TemplateTaskWhereUniqueInput[]
 }
 
+export type NullableIntFieldUpdateOperationsInput = {
+  set?: number | null
+  increment?: number
+  decrement?: number
+  multiply?: number
+  divide?: number
+}
+
 export type TemplateTaskUpdateOneWithoutDependentsNestedInput = {
   create?: Prisma.XOR<Prisma.TemplateTaskCreateWithoutDependentsInput, Prisma.TemplateTaskUncheckedCreateWithoutDependentsInput>
   connectOrCreate?: Prisma.TemplateTaskCreateOrConnectWithoutDependentsInput
@@ -690,14 +748,6 @@ export type TemplateTaskUpdateManyWithoutDependsOnNestedInput = {
   update?: Prisma.TemplateTaskUpdateWithWhereUniqueWithoutDependsOnInput | Prisma.TemplateTaskUpdateWithWhereUniqueWithoutDependsOnInput[]
   updateMany?: Prisma.TemplateTaskUpdateManyWithWhereWithoutDependsOnInput | Prisma.TemplateTaskUpdateManyWithWhereWithoutDependsOnInput[]
   deleteMany?: Prisma.TemplateTaskScalarWhereInput | Prisma.TemplateTaskScalarWhereInput[]
-}
-
-export type NullableIntFieldUpdateOperationsInput = {
-  set?: number | null
-  increment?: number
-  decrement?: number
-  multiply?: number
-  divide?: number
 }
 
 export type TemplateTaskUncheckedUpdateManyWithoutDependsOnNestedInput = {
@@ -723,6 +773,8 @@ export type TemplateTaskCreateWithoutMasterTaskInput = {
   type?: string
   color?: string | null
   isCashConfirmed?: boolean
+  dependencyType?: string
+  dependencyDelay?: number | null
   template: Prisma.TemplateCreateNestedOneWithoutTemplateTasksInput
   dependsOn?: Prisma.TemplateTaskCreateNestedOneWithoutDependentsInput
   dependents?: Prisma.TemplateTaskCreateNestedManyWithoutDependsOnInput
@@ -740,6 +792,8 @@ export type TemplateTaskUncheckedCreateWithoutMasterTaskInput = {
   color?: string | null
   isCashConfirmed?: boolean
   dependsOnId?: number | null
+  dependencyType?: string
+  dependencyDelay?: number | null
   dependents?: Prisma.TemplateTaskUncheckedCreateNestedManyWithoutDependsOnInput
 }
 
@@ -784,6 +838,8 @@ export type TemplateTaskScalarWhereInput = {
   color?: Prisma.StringNullableFilter<"TemplateTask"> | string | null
   isCashConfirmed?: Prisma.BoolFilter<"TemplateTask"> | boolean
   dependsOnId?: Prisma.IntNullableFilter<"TemplateTask"> | number | null
+  dependencyType?: Prisma.StringFilter<"TemplateTask"> | string
+  dependencyDelay?: Prisma.IntNullableFilter<"TemplateTask"> | number | null
 }
 
 export type TemplateTaskCreateWithoutTemplateInput = {
@@ -795,6 +851,8 @@ export type TemplateTaskCreateWithoutTemplateInput = {
   type?: string
   color?: string | null
   isCashConfirmed?: boolean
+  dependencyType?: string
+  dependencyDelay?: number | null
   masterTask?: Prisma.MasterTaskCreateNestedOneWithoutTemplateTasksInput
   dependsOn?: Prisma.TemplateTaskCreateNestedOneWithoutDependentsInput
   dependents?: Prisma.TemplateTaskCreateNestedManyWithoutDependsOnInput
@@ -812,6 +870,8 @@ export type TemplateTaskUncheckedCreateWithoutTemplateInput = {
   color?: string | null
   isCashConfirmed?: boolean
   dependsOnId?: number | null
+  dependencyType?: string
+  dependencyDelay?: number | null
   dependents?: Prisma.TemplateTaskUncheckedCreateNestedManyWithoutDependsOnInput
 }
 
@@ -849,6 +909,8 @@ export type TemplateTaskCreateWithoutDependentsInput = {
   type?: string
   color?: string | null
   isCashConfirmed?: boolean
+  dependencyType?: string
+  dependencyDelay?: number | null
   template: Prisma.TemplateCreateNestedOneWithoutTemplateTasksInput
   masterTask?: Prisma.MasterTaskCreateNestedOneWithoutTemplateTasksInput
   dependsOn?: Prisma.TemplateTaskCreateNestedOneWithoutDependentsInput
@@ -867,6 +929,8 @@ export type TemplateTaskUncheckedCreateWithoutDependentsInput = {
   color?: string | null
   isCashConfirmed?: boolean
   dependsOnId?: number | null
+  dependencyType?: string
+  dependencyDelay?: number | null
 }
 
 export type TemplateTaskCreateOrConnectWithoutDependentsInput = {
@@ -883,6 +947,8 @@ export type TemplateTaskCreateWithoutDependsOnInput = {
   type?: string
   color?: string | null
   isCashConfirmed?: boolean
+  dependencyType?: string
+  dependencyDelay?: number | null
   template: Prisma.TemplateCreateNestedOneWithoutTemplateTasksInput
   masterTask?: Prisma.MasterTaskCreateNestedOneWithoutTemplateTasksInput
   dependents?: Prisma.TemplateTaskCreateNestedManyWithoutDependsOnInput
@@ -900,6 +966,8 @@ export type TemplateTaskUncheckedCreateWithoutDependsOnInput = {
   type?: string
   color?: string | null
   isCashConfirmed?: boolean
+  dependencyType?: string
+  dependencyDelay?: number | null
   dependents?: Prisma.TemplateTaskUncheckedCreateNestedManyWithoutDependsOnInput
 }
 
@@ -932,6 +1000,8 @@ export type TemplateTaskUpdateWithoutDependentsInput = {
   type?: Prisma.StringFieldUpdateOperationsInput | string
   color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isCashConfirmed?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  dependencyType?: Prisma.StringFieldUpdateOperationsInput | string
+  dependencyDelay?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   template?: Prisma.TemplateUpdateOneRequiredWithoutTemplateTasksNestedInput
   masterTask?: Prisma.MasterTaskUpdateOneWithoutTemplateTasksNestedInput
   dependsOn?: Prisma.TemplateTaskUpdateOneWithoutDependentsNestedInput
@@ -950,6 +1020,8 @@ export type TemplateTaskUncheckedUpdateWithoutDependentsInput = {
   color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isCashConfirmed?: Prisma.BoolFieldUpdateOperationsInput | boolean
   dependsOnId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  dependencyType?: Prisma.StringFieldUpdateOperationsInput | string
+  dependencyDelay?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
 
 export type TemplateTaskUpsertWithWhereUniqueWithoutDependsOnInput = {
@@ -980,6 +1052,8 @@ export type TemplateTaskCreateManyMasterTaskInput = {
   color?: string | null
   isCashConfirmed?: boolean
   dependsOnId?: number | null
+  dependencyType?: string
+  dependencyDelay?: number | null
 }
 
 export type TemplateTaskUpdateWithoutMasterTaskInput = {
@@ -991,6 +1065,8 @@ export type TemplateTaskUpdateWithoutMasterTaskInput = {
   type?: Prisma.StringFieldUpdateOperationsInput | string
   color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isCashConfirmed?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  dependencyType?: Prisma.StringFieldUpdateOperationsInput | string
+  dependencyDelay?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   template?: Prisma.TemplateUpdateOneRequiredWithoutTemplateTasksNestedInput
   dependsOn?: Prisma.TemplateTaskUpdateOneWithoutDependentsNestedInput
   dependents?: Prisma.TemplateTaskUpdateManyWithoutDependsOnNestedInput
@@ -1008,6 +1084,8 @@ export type TemplateTaskUncheckedUpdateWithoutMasterTaskInput = {
   color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isCashConfirmed?: Prisma.BoolFieldUpdateOperationsInput | boolean
   dependsOnId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  dependencyType?: Prisma.StringFieldUpdateOperationsInput | string
+  dependencyDelay?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   dependents?: Prisma.TemplateTaskUncheckedUpdateManyWithoutDependsOnNestedInput
 }
 
@@ -1023,6 +1101,8 @@ export type TemplateTaskUncheckedUpdateManyWithoutMasterTaskInput = {
   color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isCashConfirmed?: Prisma.BoolFieldUpdateOperationsInput | boolean
   dependsOnId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  dependencyType?: Prisma.StringFieldUpdateOperationsInput | string
+  dependencyDelay?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
 
 export type TemplateTaskCreateManyTemplateInput = {
@@ -1037,6 +1117,8 @@ export type TemplateTaskCreateManyTemplateInput = {
   color?: string | null
   isCashConfirmed?: boolean
   dependsOnId?: number | null
+  dependencyType?: string
+  dependencyDelay?: number | null
 }
 
 export type TemplateTaskUpdateWithoutTemplateInput = {
@@ -1048,6 +1130,8 @@ export type TemplateTaskUpdateWithoutTemplateInput = {
   type?: Prisma.StringFieldUpdateOperationsInput | string
   color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isCashConfirmed?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  dependencyType?: Prisma.StringFieldUpdateOperationsInput | string
+  dependencyDelay?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   masterTask?: Prisma.MasterTaskUpdateOneWithoutTemplateTasksNestedInput
   dependsOn?: Prisma.TemplateTaskUpdateOneWithoutDependentsNestedInput
   dependents?: Prisma.TemplateTaskUpdateManyWithoutDependsOnNestedInput
@@ -1065,6 +1149,8 @@ export type TemplateTaskUncheckedUpdateWithoutTemplateInput = {
   color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isCashConfirmed?: Prisma.BoolFieldUpdateOperationsInput | boolean
   dependsOnId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  dependencyType?: Prisma.StringFieldUpdateOperationsInput | string
+  dependencyDelay?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   dependents?: Prisma.TemplateTaskUncheckedUpdateManyWithoutDependsOnNestedInput
 }
 
@@ -1080,6 +1166,8 @@ export type TemplateTaskUncheckedUpdateManyWithoutTemplateInput = {
   color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isCashConfirmed?: Prisma.BoolFieldUpdateOperationsInput | boolean
   dependsOnId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  dependencyType?: Prisma.StringFieldUpdateOperationsInput | string
+  dependencyDelay?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
 
 export type TemplateTaskCreateManyDependsOnInput = {
@@ -1094,6 +1182,8 @@ export type TemplateTaskCreateManyDependsOnInput = {
   type?: string
   color?: string | null
   isCashConfirmed?: boolean
+  dependencyType?: string
+  dependencyDelay?: number | null
 }
 
 export type TemplateTaskUpdateWithoutDependsOnInput = {
@@ -1105,6 +1195,8 @@ export type TemplateTaskUpdateWithoutDependsOnInput = {
   type?: Prisma.StringFieldUpdateOperationsInput | string
   color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isCashConfirmed?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  dependencyType?: Prisma.StringFieldUpdateOperationsInput | string
+  dependencyDelay?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   template?: Prisma.TemplateUpdateOneRequiredWithoutTemplateTasksNestedInput
   masterTask?: Prisma.MasterTaskUpdateOneWithoutTemplateTasksNestedInput
   dependents?: Prisma.TemplateTaskUpdateManyWithoutDependsOnNestedInput
@@ -1122,6 +1214,8 @@ export type TemplateTaskUncheckedUpdateWithoutDependsOnInput = {
   type?: Prisma.StringFieldUpdateOperationsInput | string
   color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isCashConfirmed?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  dependencyType?: Prisma.StringFieldUpdateOperationsInput | string
+  dependencyDelay?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   dependents?: Prisma.TemplateTaskUncheckedUpdateManyWithoutDependsOnNestedInput
 }
 
@@ -1137,6 +1231,8 @@ export type TemplateTaskUncheckedUpdateManyWithoutDependsOnInput = {
   type?: Prisma.StringFieldUpdateOperationsInput | string
   color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isCashConfirmed?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  dependencyType?: Prisma.StringFieldUpdateOperationsInput | string
+  dependencyDelay?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
 
 
@@ -1183,6 +1279,8 @@ export type TemplateTaskSelect<ExtArgs extends runtime.Types.Extensions.Internal
   color?: boolean
   isCashConfirmed?: boolean
   dependsOnId?: boolean
+  dependencyType?: boolean
+  dependencyDelay?: boolean
   template?: boolean | Prisma.TemplateDefaultArgs<ExtArgs>
   masterTask?: boolean | Prisma.TemplateTask$masterTaskArgs<ExtArgs>
   dependsOn?: boolean | Prisma.TemplateTask$dependsOnArgs<ExtArgs>
@@ -1203,6 +1301,8 @@ export type TemplateTaskSelectCreateManyAndReturn<ExtArgs extends runtime.Types.
   color?: boolean
   isCashConfirmed?: boolean
   dependsOnId?: boolean
+  dependencyType?: boolean
+  dependencyDelay?: boolean
   template?: boolean | Prisma.TemplateDefaultArgs<ExtArgs>
   masterTask?: boolean | Prisma.TemplateTask$masterTaskArgs<ExtArgs>
   dependsOn?: boolean | Prisma.TemplateTask$dependsOnArgs<ExtArgs>
@@ -1221,6 +1321,8 @@ export type TemplateTaskSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.
   color?: boolean
   isCashConfirmed?: boolean
   dependsOnId?: boolean
+  dependencyType?: boolean
+  dependencyDelay?: boolean
   template?: boolean | Prisma.TemplateDefaultArgs<ExtArgs>
   masterTask?: boolean | Prisma.TemplateTask$masterTaskArgs<ExtArgs>
   dependsOn?: boolean | Prisma.TemplateTask$dependsOnArgs<ExtArgs>
@@ -1239,9 +1341,11 @@ export type TemplateTaskSelectScalar = {
   color?: boolean
   isCashConfirmed?: boolean
   dependsOnId?: boolean
+  dependencyType?: boolean
+  dependencyDelay?: boolean
 }
 
-export type TemplateTaskOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "templateId" | "taskId" | "name" | "duration" | "sequenceOrder" | "dayOffset" | "startTime" | "type" | "color" | "isCashConfirmed" | "dependsOnId", ExtArgs["result"]["templateTask"]>
+export type TemplateTaskOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "templateId" | "taskId" | "name" | "duration" | "sequenceOrder" | "dayOffset" | "startTime" | "type" | "color" | "isCashConfirmed" | "dependsOnId" | "dependencyType" | "dependencyDelay", ExtArgs["result"]["templateTask"]>
 export type TemplateTaskInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   template?: boolean | Prisma.TemplateDefaultArgs<ExtArgs>
   masterTask?: boolean | Prisma.TemplateTask$masterTaskArgs<ExtArgs>
@@ -1281,6 +1385,8 @@ export type $TemplateTaskPayload<ExtArgs extends runtime.Types.Extensions.Intern
     color: string | null
     isCashConfirmed: boolean
     dependsOnId: number | null
+    dependencyType: string
+    dependencyDelay: number | null
   }, ExtArgs["result"]["templateTask"]>
   composites: {}
 }
@@ -1720,6 +1826,8 @@ export interface TemplateTaskFieldRefs {
   readonly color: Prisma.FieldRef<"TemplateTask", 'String'>
   readonly isCashConfirmed: Prisma.FieldRef<"TemplateTask", 'Boolean'>
   readonly dependsOnId: Prisma.FieldRef<"TemplateTask", 'Int'>
+  readonly dependencyType: Prisma.FieldRef<"TemplateTask", 'String'>
+  readonly dependencyDelay: Prisma.FieldRef<"TemplateTask", 'Int'>
 }
     
 

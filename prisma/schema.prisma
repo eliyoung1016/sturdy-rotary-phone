@@ -50,6 +50,8 @@ model TemplateTask {
   isCashConfirmed Boolean        @default(false) @map("is_cash_confirmed")
   
   dependsOnId   Int?             @map("depends_on_id") // Integrated dependency
+  dependencyType String          @default("IMMEDIATE") @map("dependency_type") // IMMEDIATE, TIME_LAG, NO_RELATION
+  dependencyDelay Int?           @default(0) @map("dependency_delay") // In minutes (for TIME_LAG)
 
   template      Template         @relation(fields: [templateId], references: [id])
   masterTask    MasterTask?      @relation(fields: [taskId], references: [id])

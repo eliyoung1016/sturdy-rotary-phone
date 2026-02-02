@@ -7,6 +7,8 @@ export interface TaskItem {
   duration: number; // minutes
   // Optional working hours adjustment
   dependsOnTempId?: string | null | undefined;
+  dependencyType?: "IMMEDIATE" | "TIME_LAG" | "NO_RELATION";
+  dependencyDelay?: number;
   // Others
   [key: string]: any;
 }
@@ -96,6 +98,10 @@ export function useTaskDependencies(workingHours?: WorkingHours) {
       );
 
     dependentTasks.forEach(({ task: depTask, index: depIndex }) => {
+      // If the dependent task has NO_RELATION, do not shift it automatically
+      // unless we want to maintain the gap? Use case says "no time relation", so assume we don't propagate.
+      if (depTask.dependencyType === "NO_RELATION") return;
+
       const currentStart = getAbsoluteMinutes(
         depTask.dayOffset,
         depTask.startTime,
@@ -140,8 +146,11 @@ export function useTaskDependencies(workingHours?: WorkingHours) {
     update: UseFieldArrayUpdate<any, any>,
   ) => {
     const childTask = currentTasks[childIndex];
-    const parentTask = currentTasks.find((t) => t.tempId === parentId);
 
+    // 1. Check dependency type
+    if (childTask.dependencyType === "NO_RELATION") return;
+
+    const parentTask = currentTasks.find((t) => t.tempId === parentId);
     if (!parentTask) return;
 
     const parentStart = getAbsoluteMinutes(
@@ -155,8 +164,16 @@ export function useTaskDependencies(workingHours?: WorkingHours) {
       childTask.startTime,
     );
 
-    if (childStart < parentEnd) {
-      let { dayOffset, timeStr } = getDayAndTime(parentEnd);
+    // Calculate required start time based on delay
+    // IMMEDIATE = 0 delay effectively
+    const requiredDelay =
+      childTask.dependencyType === "TIME_LAG"
+        ? childTask.dependencyDelay || 0
+        : 0;
+    const requiredStart = parentEnd + requiredDelay;
+
+    if (childStart < requiredStart) {
+      let { dayOffset, timeStr } = getDayAndTime(requiredStart);
 
       // Apply working hours adjustment
       if (workingHours) {
@@ -178,7 +195,7 @@ export function useTaskDependencies(workingHours?: WorkingHours) {
       currentTasks[childIndex] = newChildTask;
       update(childIndex, newChildTask);
 
-      const delta = parentEnd - childStart;
+      const delta = requiredStart - childStart;
       updateDependentTasks(childTask.tempId, delta, currentTasks, update);
     }
   };

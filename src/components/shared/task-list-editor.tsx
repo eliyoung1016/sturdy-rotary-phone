@@ -17,24 +17,25 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import {
+  DollarSign,
   GripVertical,
   Plus,
-  Trash2,
   Settings2,
-  BadgeDollarSign,
-  DollarSign,
+  Trash2,
 } from "lucide-react";
-import {
-  useFormContext,
-  useFieldArray,
-  UseFieldArrayReturn,
-} from "react-hook-form";
 import { useState } from "react";
+import { useFieldArray, useFormContext } from "react-hook-form";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { ColorSelect } from "@/components/ui/color-select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Select,
   SelectContent,
@@ -43,18 +44,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { ColorSelect } from "@/components/ui/color-select";
-import { cn } from "@/lib/utils";
-import {
-  useTaskDependencies,
   type TaskItem,
+  useTaskDependencies,
 } from "@/hooks/use-task-dependencies";
 import { TASK_COLORS } from "@/lib/constants/colors";
+import { cn } from "@/lib/utils";
 
 interface MasterTask {
   id: number;
@@ -123,11 +117,10 @@ export function TaskListEditor({
     name,
   });
 
-  const [editingAttributes, setEditingAttributes] = useState<{
-    index: number;
-    color: string;
-    isCashConfirmed: boolean;
-  } | null>(null);
+  const [openPopoverId, setOpenPopoverId] = useState<string | null>(null);
+  const [openAttributesPopoverId, setOpenAttributesPopoverId] = useState<
+    string | null
+  >(null);
 
   const {
     getAbsoluteMinutes,
@@ -141,6 +134,22 @@ export function TaskListEditor({
       coordinateGetter: sortableKeyboardCoordinates,
     }),
   );
+
+  const getDependencyLabel = (taskValues: any) => {
+    if (!taskValues.dependsOnTempId) return "None";
+    const parent = getValues(name).find(
+      (t: any) => t.tempId === taskValues.dependsOnTempId,
+    );
+    if (!parent) return "Unknown";
+
+    let label = parent.name || "Task";
+    if (taskValues.dependencyType === "TIME_LAG") {
+      label += ` (+${taskValues.dependencyDelay}m)`;
+    } else if (taskValues.dependencyType === "NO_RELATION") {
+      label += ` (No Rel)`;
+    }
+    return label;
+  };
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
@@ -197,29 +206,6 @@ export function TaskListEditor({
     }
   };
 
-  const openAttributesDialog = (index: number) => {
-    const task = getValues(`${name}.${index}`);
-    setEditingAttributes({
-      index,
-      color: task.color || "primary",
-      isCashConfirmed: !!task.isCashConfirmed,
-    });
-  };
-
-  const saveAttributes = () => {
-    if (!editingAttributes) return;
-    const { index, color, isCashConfirmed } = editingAttributes;
-
-    setValue(`${name}.${index}.color`, color);
-    setValue(`${name}.${index}.isCashConfirmed`, isCashConfirmed);
-
-    // Also update field array mostly for persistence/reactivity if relying on 'fields'
-    const current = getValues(`${name}.${index}`);
-    update(index, { ...current, color, isCashConfirmed });
-
-    setEditingAttributes(null);
-  };
-
   // Helper to get color value for display
   const getColorValue = (colorName: string | undefined): string => {
     const found = TASK_COLORS.find((c) => c.value === (colorName || "primary"));
@@ -264,7 +250,7 @@ export function TaskListEditor({
             onDragEnd={handleDragEnd}
           >
             <SortableContext
-              items={fields}
+              items={fields.map((f: any) => f.tempId)}
               strategy={verticalListSortingStrategy}
             >
               {fields.map((field, index) => {
@@ -278,7 +264,10 @@ export function TaskListEditor({
                 const taskValues = currentTask || field;
 
                 return (
-                  <SortableTaskItem key={field.id} id={field.id}>
+                  <SortableTaskItem
+                    key={taskValues.tempId}
+                    id={taskValues.tempId}
+                  >
                     {({ attributes, listeners }) => (
                       <div className="grid grid-cols-[30px_1fr_100px_280px_1fr_80px_40px] gap-2 items-center px-3 py-2">
                         <div
@@ -551,43 +540,196 @@ export function TaskListEditor({
 
                         {/* Dependency */}
                         <div>
-                          <Select
-                            disabled={readOnly}
-                            value={taskValues.dependsOnTempId || "none"}
-                            onValueChange={(val) => {
-                              const newVal = val === "none" ? undefined : val;
-                              const currentTasks = getValues(name);
-
-                              const updatedTask = {
-                                ...currentTasks[index],
-                                dependsOnTempId: newVal,
-                              };
-                              update(index, updatedTask);
-                              currentTasks[index] = updatedTask;
-
-                              if (newVal)
-                                enforceDependencyConstraint(
-                                  index,
-                                  newVal,
-                                  currentTasks,
-                                  update,
-                                );
-                            }}
+                          <Popover
+                            open={openPopoverId === taskValues.tempId}
+                            onOpenChange={(open) =>
+                              setOpenPopoverId(open ? taskValues.tempId : null)
+                            }
+                            modal={false}
                           >
-                            <SelectTrigger className="h-7 text-xs text-muted-foreground">
-                              <SelectValue placeholder="None" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="none">None</SelectItem>
-                              {getDependencyOptions(taskValues.tempId).map(
-                                (opt) => (
-                                  <SelectItem key={opt.value} value={opt.value}>
-                                    {opt.label}
-                                  </SelectItem>
-                                ),
-                              )}
-                            </SelectContent>
-                          </Select>
+                            <PopoverTrigger asChild>
+                              <Button
+                                variant="outline"
+                                role="combobox"
+                                disabled={readOnly}
+                                className={cn(
+                                  "w-full h-7 text-xs justify-between px-2 font-normal",
+                                  !taskValues.dependsOnTempId &&
+                                    "text-muted-foreground",
+                                )}
+                              >
+                                <span className="truncate">
+                                  {getDependencyLabel(taskValues)}
+                                </span>
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent
+                              className="w-[300px] p-3"
+                              align="start"
+                              onPointerDownOutside={(e) => {
+                                // Prevent closing when clicking into a Select content (portal)
+                                if (
+                                  e.target instanceof Element &&
+                                  (e.target.closest('[role="listbox"]') ||
+                                    e.target.closest('[role="option"]'))
+                                ) {
+                                  e.preventDefault();
+                                }
+                              }}
+                            >
+                              <div className="space-y-3">
+                                <div className="space-y-1">
+                                  <Label className="text-xs">Parent Task</Label>
+                                  <Select
+                                    value={taskValues.dependsOnTempId || "none"}
+                                    onValueChange={(val) => {
+                                      const newVal =
+                                        val === "none" ? undefined : val;
+                                      const currentTasks = getValues(name);
+
+                                      const updatedTask = {
+                                        ...currentTasks[index],
+                                        dependsOnTempId: newVal,
+                                        // Reset type/delay if removing dependency
+                                        ...(newVal
+                                          ? {}
+                                          : {
+                                              dependencyType: "IMMEDIATE",
+                                              dependencyDelay: 0,
+                                            }),
+                                      };
+                                      update(index, updatedTask);
+                                      currentTasks[index] = updatedTask;
+
+                                      if (newVal)
+                                        enforceDependencyConstraint(
+                                          index,
+                                          newVal,
+                                          currentTasks,
+                                          update,
+                                        );
+                                    }}
+                                  >
+                                    <SelectTrigger className="h-8 text-xs">
+                                      <SelectValue placeholder="None" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="none">None</SelectItem>
+                                      {getDependencyOptions(
+                                        taskValues.tempId,
+                                      ).map((opt) => (
+                                        <SelectItem
+                                          key={opt.value}
+                                          value={opt.value}
+                                        >
+                                          {opt.label}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+
+                                <div
+                                  className={cn(
+                                    "space-y-1",
+                                    !taskValues.dependsOnTempId && "opacity-50",
+                                  )}
+                                >
+                                  <Label className="text-xs">
+                                    Relation Type
+                                  </Label>
+                                  <Select
+                                    disabled={!taskValues.dependsOnTempId}
+                                    value={
+                                      taskValues.dependencyType || "IMMEDIATE"
+                                    }
+                                    onValueChange={(val) => {
+                                      const currentTasks = getValues(name);
+                                      const updatedTask = {
+                                        ...currentTasks[index],
+                                        dependencyType: val,
+                                      };
+                                      update(index, updatedTask);
+                                      currentTasks[index] = updatedTask;
+
+                                      if (taskValues.dependsOnTempId) {
+                                        enforceDependencyConstraint(
+                                          index,
+                                          taskValues.dependsOnTempId,
+                                          currentTasks,
+                                          update,
+                                        );
+                                      }
+                                    }}
+                                  >
+                                    <SelectTrigger className="h-8 text-xs">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="IMMEDIATE">
+                                        Immediately After
+                                      </SelectItem>
+                                      <SelectItem value="TIME_LAG">
+                                        After Gap (Lag)
+                                      </SelectItem>
+                                      <SelectItem value="NO_RELATION">
+                                        No Time Relation
+                                      </SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+
+                                {(taskValues.dependencyType === "TIME_LAG" ||
+                                  !taskValues.dependencyType) && (
+                                  <div
+                                    className={cn(
+                                      "space-y-1",
+                                      !taskValues.dependsOnTempId &&
+                                        "opacity-50",
+                                    )}
+                                  >
+                                    <Label className="text-xs">
+                                      Lag (minutes)
+                                    </Label>
+                                    <Input
+                                      type="number"
+                                      disabled={!taskValues.dependsOnTempId}
+                                      className="h-8 text-xs"
+                                      value={taskValues.dependencyDelay || 0}
+                                      onChange={(e) => {
+                                        const val = Number(e.target.value);
+                                        const currentTasks = getValues(name);
+                                        const updatedTask = {
+                                          ...currentTasks[index],
+                                          dependencyDelay: val,
+                                        };
+                                        update(index, updatedTask);
+                                        currentTasks[index] = updatedTask;
+
+                                        if (taskValues.dependsOnTempId) {
+                                          enforceDependencyConstraint(
+                                            index,
+                                            taskValues.dependsOnTempId,
+                                            currentTasks,
+                                            update,
+                                          );
+                                        }
+                                      }}
+                                    />
+                                  </div>
+                                )}
+                              </div>
+                              <div className="mt-3 pt-2 flex justify-end">
+                                <Button
+                                  size="sm"
+                                  className="h-7 text-xs"
+                                  onClick={() => setOpenPopoverId(null)}
+                                >
+                                  Done
+                                </Button>
+                              </div>
+                            </PopoverContent>
+                          </Popover>
                         </div>
 
                         {/* Attributes (Color/Cash/Settings) */}
@@ -606,19 +748,94 @@ export function TaskListEditor({
                             </div>
                           )}
 
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 text-muted-foreground ml-1"
-                            title="Edit Attributes"
-                            onClick={() =>
-                              !readOnly && openAttributesDialog(index)
+                          <Popover
+                            open={openAttributesPopoverId === taskValues.tempId}
+                            onOpenChange={(open) =>
+                              setOpenAttributesPopoverId(
+                                open ? taskValues.tempId : null,
+                              )
                             }
-                            disabled={readOnly}
+                            modal={false}
                           >
-                            <Settings2 className="h-4 w-4" />
-                          </Button>
+                            <PopoverTrigger asChild>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 text-muted-foreground ml-1"
+                                title="Edit Attributes"
+                                disabled={readOnly}
+                              >
+                                <Settings2 className="h-4 w-4" />
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent
+                              className="w-[280px] p-4"
+                              align="end"
+                              onPointerDownOutside={(e) => {
+                                // Prevent closing when interacting with select dropdowns inside
+                                if (
+                                  e.target instanceof Element &&
+                                  (e.target.closest('[role="listbox"]') ||
+                                    e.target.closest('[role="option"]'))
+                                ) {
+                                  e.preventDefault();
+                                }
+                              }}
+                            >
+                              <div className="space-y-4">
+                                <div className="space-y-2">
+                                  <Label className="text-xs">Color</Label>
+                                  <ColorSelect
+                                    value={taskValues.color}
+                                    onValueChange={(val) => {
+                                      const currentTasks = getValues(name);
+                                      const updatedTask = {
+                                        ...currentTasks[index],
+                                        color: val,
+                                      };
+                                      update(index, updatedTask);
+                                      currentTasks[index] = updatedTask;
+                                    }}
+                                  />
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <Checkbox
+                                    id={`isCashConfirmed-${taskValues.tempId}`}
+                                    className="h-4 w-4"
+                                    checked={taskValues.isCashConfirmed}
+                                    onCheckedChange={(checked) => {
+                                      const currentTasks = getValues(name);
+                                      const updatedTask = {
+                                        ...currentTasks[index],
+                                        isCashConfirmed: !!checked,
+                                      };
+                                      update(index, updatedTask);
+                                      currentTasks[index] = updatedTask;
+                                    }}
+                                    disabled={!!taskValues.taskId}
+                                  />
+                                  <Label
+                                    htmlFor={`isCashConfirmed-${taskValues.tempId}`}
+                                    className="cursor-pointer text-xs"
+                                  >
+                                    Is Cash Confirmed?
+                                  </Label>
+                                </div>
+                                <div className="pt-2 flex justify-end">
+                                  <Button
+                                    size="sm"
+                                    className="h-7 text-xs"
+                                    onClick={() =>
+                                      setOpenAttributesPopoverId(null)
+                                    }
+                                  >
+                                    Done
+                                  </Button>
+                                </div>
+                              </div>
+                            </PopoverContent>
+                          </Popover>
                         </div>
 
                         {/* Actions */}
@@ -648,66 +865,6 @@ export function TaskListEditor({
           )}
         </div>
       </div>
-
-      {/* Attributes Dialog */}
-      <Dialog
-        open={editingAttributes !== null}
-        onOpenChange={(open) => {
-          if (!open) setEditingAttributes(null);
-        }}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Edit Task Attributes</DialogTitle>
-          </DialogHeader>
-          {editingAttributes && (
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label>Color</Label>
-                <ColorSelect
-                  value={editingAttributes.color}
-                  onValueChange={(val) => {
-                    setEditingAttributes({ ...editingAttributes, color: val });
-                  }}
-                />
-              </div>
-              <div className="flex items-center gap-2">
-                <Checkbox
-                  id={`isCashConfirmed-dialog`}
-                  className="h-4 w-4"
-                  checked={editingAttributes.isCashConfirmed}
-                  onCheckedChange={(checked: boolean) => {
-                    setEditingAttributes({
-                      ...editingAttributes,
-                      isCashConfirmed: checked,
-                    });
-                  }}
-                  disabled={
-                    !!(getValues(`${name}.${editingAttributes.index}`) as any)
-                      ?.taskId
-                  }
-                />
-                <Label
-                  htmlFor={`isCashConfirmed-dialog`}
-                  className="cursor-pointer"
-                >
-                  Is Cash Confirmed?
-                </Label>
-              </div>
-
-              <div className="flex justify-end gap-2 pt-4">
-                <Button
-                  variant="outline"
-                  onClick={() => setEditingAttributes(null)}
-                >
-                  Cancel
-                </Button>
-                <Button onClick={saveAttributes}>Confirm</Button>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

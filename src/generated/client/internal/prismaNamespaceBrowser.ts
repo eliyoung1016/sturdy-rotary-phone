@@ -105,7 +105,9 @@ export const TemplateTaskScalarFieldEnum = {
   type: 'type',
   color: 'color',
   isCashConfirmed: 'isCashConfirmed',
-  dependsOnId: 'dependsOnId'
+  dependsOnId: 'dependsOnId',
+  dependencyType: 'dependencyType',
+  dependencyDelay: 'dependencyDelay'
 } as const
 
 export type TemplateTaskScalarFieldEnum = (typeof TemplateTaskScalarFieldEnum)[keyof typeof TemplateTaskScalarFieldEnum]

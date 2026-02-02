@@ -62,6 +62,8 @@ export async function createTemplate(data: TemplateInput) {
             type: task.type || "PROCESS",
             color: task.color || "primary",
             isCashConfirmed: task.isCashConfirmed,
+            dependencyType: task.dependencyType || "IMMEDIATE",
+            dependencyDelay: task.dependencyDelay || 0,
           },
         });
         tempIdToTemplateTaskId.set(task.tempId, templateTask.id);
@@ -125,6 +127,10 @@ export async function getTemplate(id: number) {
       isCashConfirmed: t.isCashConfirmed,
       dependsOnTempId: undefined as string | undefined, // mapped later
       dependsOnId: t.dependsOnId,
+      dependencyType:
+        (t.dependencyType as "IMMEDIATE" | "TIME_LAG" | "NO_RELATION") ||
+        "IMMEDIATE",
+      dependencyDelay: t.dependencyDelay || 0,
       saveToMaster: false,
     }));
 
@@ -212,6 +218,8 @@ export async function updateTemplate(id: number, data: TemplateInput) {
             type: task.type || "PROCESS",
             color: task.color || "primary",
             isCashConfirmed: task.isCashConfirmed,
+            dependencyType: task.dependencyType || "IMMEDIATE",
+            dependencyDelay: task.dependencyDelay || 0,
           },
         });
         tempIdToTemplateTaskId.set(task.tempId, templateTask.id);

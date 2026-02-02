@@ -1,6 +1,6 @@
 "use client";
 
-import { Pencil, Plus } from "lucide-react";
+import { DollarSign, Pencil, Plus } from "lucide-react";
 import { useState } from "react";
 import { MasterTaskDialog } from "@/components/master-tasks/master-task-dialog";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { TASK_COLORS } from "@/lib/constants/colors";
 import type { MasterTaskInput } from "@/lib/schemas/master-task";
 
 interface MasterTask extends MasterTaskInput {
@@ -26,6 +27,12 @@ interface MasterTaskListProps {
 export function MasterTaskList({ tasks }: MasterTaskListProps) {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<MasterTask | null>(null);
+
+  // Helper to get color value for display
+  const getColorValue = (colorName: string | undefined): string => {
+    const found = TASK_COLORS.find((c) => c.value === (colorName || "primary"));
+    return found ? found.color : "#3b82f6"; // Default blue fallback
+  };
 
   return (
     <>
@@ -46,10 +53,13 @@ export function MasterTaskList({ tasks }: MasterTaskListProps) {
           <TableCaption>A list of your master tasks.</TableCaption>
           <TableHeader>
             <TableRow>
-              <TableHead>Name</TableHead>
+              <TableHead className="w-[200px]">Name</TableHead>
               <TableHead>Type</TableHead>
               <TableHead>Duration</TableHead>
-
+              <TableHead className="hidden md:table-cell">
+                Description
+              </TableHead>
+              <TableHead>Attributes</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -62,7 +72,25 @@ export function MasterTaskList({ tasks }: MasterTaskListProps) {
                   <TableCell>
                     {task.type === "CUTOFF" ? "-" : `${task.duration}m`}
                   </TableCell>
-
+                  <TableCell className="hidden md:table-cell text-muted-foreground max-w-[200px] truncate">
+                    {task.description || "-"}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <div
+                        className="w-4 h-4 rounded-full border border-gray-200"
+                        style={{
+                          background: getColorValue(task.color),
+                        }}
+                        title={`Color: ${task.color || "primary"}`}
+                      />
+                      {task.isCashConfirmed && (
+                        <div title="Cash Confirmed">
+                          <DollarSign className="h-4 w-4 text-green-600" />
+                        </div>
+                      )}
+                    </div>
+                  </TableCell>
                   <TableCell className="text-right">
                     <Button
                       variant="ghost"
@@ -77,7 +105,7 @@ export function MasterTaskList({ tasks }: MasterTaskListProps) {
             ) : (
               <TableRow>
                 <TableCell
-                  colSpan={4}
+                  colSpan={6}
                   className="h-24 text-center text-muted-foreground"
                 >
                   No tasks found. Create one to get started.
