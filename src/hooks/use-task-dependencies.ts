@@ -9,6 +9,7 @@ export interface TaskItem {
   dependsOnTempId?: string | null | undefined;
   dependencyType?: "IMMEDIATE" | "TIME_LAG" | "NO_RELATION";
   dependencyDelay?: number;
+  requiresWorkingHours?: boolean;
   // Others
   [key: string]: any;
 }
@@ -41,7 +42,34 @@ export function useTaskDependencies(workingHours?: WorkingHours) {
     startTime: string,
     duration: number,
   ): { dayOffset: number; startTime: string } => {
-    // Disabled office hour limitation as per user request
+    if (!workingHours) return { dayOffset, startTime };
+
+    const { start, end } = workingHours;
+    const startMins = timeToMinutes(start);
+    const endMins = timeToMinutes(end);
+    const timeMins = timeToMinutes(startTime);
+
+    // 1. If start time is before office start, move to office start
+    if (timeMins < startMins) {
+      return { dayOffset, startTime: start };
+    }
+
+    // 2. If start time is after office end, move to next day office start
+    if (timeMins >= endMins) {
+      return { dayOffset: dayOffset + 1, startTime: start };
+    }
+
+    // 3. New Rule: If task fits but extends beyond office end, push to next day
+    // Calculate end time of the task
+    const taskEndMins = timeMins + duration;
+
+    // If the task ends after the office end, it must be pushed to the next day
+    // Note: This logic moves the ENTIRE task to the next day if it doesn't fit.
+    // Assuming we want to start at the beginning of the next working day.
+    if (taskEndMins > endMins) {
+      return { dayOffset: dayOffset + 1, startTime: start };
+    }
+
     return { dayOffset, startTime };
   };
 
@@ -98,7 +126,7 @@ export function useTaskDependencies(workingHours?: WorkingHours) {
       if (currentChildStart !== newStartTotal) {
         let { dayOffset, timeStr } = getDayAndTime(newStartTotal);
 
-        if (workingHours) {
+        if (workingHours && childTask.requiresWorkingHours) {
           const adjusted = adjustForWorkingHours(
             dayOffset,
             timeStr,
@@ -194,7 +222,21 @@ export function useTaskDependencies(workingHours?: WorkingHours) {
       };
     }
 
-    // 2. Cascade to children
+    // 2. Apply working hours adjustment if needed
+    if (workingHours && currentTasks[taskIndex].requiresWorkingHours) {
+      const adjusted = adjustForWorkingHours(
+        currentTasks[taskIndex].dayOffset,
+        currentTasks[taskIndex].startTime,
+        currentTasks[taskIndex].duration,
+      );
+      currentTasks[taskIndex] = {
+        ...currentTasks[taskIndex],
+        dayOffset: adjusted.dayOffset,
+        startTime: adjusted.startTime,
+      };
+    }
+
+    // 3. Cascade to children
     return recalculateDependentTasks(task.tempId, currentTasks);
   };
 

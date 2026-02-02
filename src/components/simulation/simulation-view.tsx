@@ -172,21 +172,31 @@ export function SimulationView({
     if (taskIndex === -1) return;
 
     // Apply working hours adjustment first
-    const adjusted = adjustForWorkingHours(
-      newDayOffset,
-      newStartTime,
-      newDuration,
-    );
+    // Only if the task requires working hours
+    let adjustedDay = newDayOffset;
+    let adjustedTime = newStartTime;
+
+    const taskOfInterest = tasks.find((t) => t.tempId === tempId);
+
+    if (taskOfInterest?.requiresWorkingHours) {
+      const adjusted = adjustForWorkingHours(
+        newDayOffset,
+        newStartTime,
+        newDuration,
+      );
+      adjustedDay = adjusted.dayOffset;
+      adjustedTime = adjusted.startTime;
+    }
 
     // Update the task itself
     const oldTask = tasks[taskIndex];
     const oldStart = getAbsoluteMinutes(oldTask.dayOffset, oldTask.startTime);
-    const newStart = getAbsoluteMinutes(adjusted.dayOffset, adjusted.startTime);
+    const newStart = getAbsoluteMinutes(adjustedDay, adjustedTime);
 
     tasks[taskIndex] = {
       ...oldTask,
-      dayOffset: adjusted.dayOffset,
-      startTime: adjusted.startTime,
+      dayOffset: adjustedDay,
+      startTime: adjustedTime,
       duration: newDuration,
     };
 
@@ -213,15 +223,29 @@ export function SimulationView({
         const newStartTotal = currentStart + timeDiff;
         let { dayOffset, timeStr } = getDayAndTime(newStartTotal);
 
-        const adj = adjustForWorkingHours(dayOffset, timeStr, depTask.duration);
+        if (depTask.requiresWorkingHours) {
+          const adj = adjustForWorkingHours(
+            dayOffset,
+            timeStr,
+            depTask.duration,
+          );
+          dayOffset = adj.dayOffset;
+          timeStr = adj.startTime;
+        }
 
         tasks[idx] = {
           ...depTask,
-          dayOffset: adj.dayOffset,
-          startTime: adj.startTime,
+          dayOffset,
+          startTime: timeStr,
         };
 
-        updateDeps(depTask.tempId, timeDiff);
+        // Recalculate delta for next children in case it clamped/shifted differently
+        const actualNewStart = getAbsoluteMinutes(dayOffset, timeStr);
+        const childDelta = actualNewStart - currentStart;
+
+        if (childDelta !== 0) {
+          updateDeps(depTask.tempId, childDelta);
+        }
       });
     };
 
@@ -328,6 +352,10 @@ export function SimulationView({
               name={activeTasksFieldName}
               masterTasks={masterTasks}
               className="w-full"
+              workingHours={{
+                start: fund.officeStart || "09:00",
+                end: fund.officeEnd || "17:00",
+              }}
             />
           </motion.div>
         </AnimatePresence>

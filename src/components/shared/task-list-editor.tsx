@@ -67,6 +67,7 @@ interface TaskListEditorProps {
   onAddEmptyTask?: () => void;
   className?: string;
   readOnly?: boolean;
+  workingHours?: { start: string; end: string };
 }
 
 function SortableTaskItem({
@@ -112,6 +113,7 @@ export function TaskListEditor({
   onAddEmptyTask,
   className,
   readOnly = false,
+  workingHours,
 }: TaskListEditorProps) {
   const { control, register, setValue, watch, getValues } = useFormContext();
   const { fields, append, remove, update, move } = useFieldArray({
@@ -125,7 +127,8 @@ export function TaskListEditor({
   >(null);
   const focusValueRef = useRef<string>("");
 
-  const { updateTaskOnMove, recalculateDependentTasks } = useTaskDependencies();
+  const { updateTaskOnMove, recalculateDependentTasks } =
+    useTaskDependencies(workingHours);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
