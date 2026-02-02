@@ -219,6 +219,26 @@ export function GanttChart({
           style={{ minWidth: calculatedWidth }}
           className="relative w-full"
         >
+          {/* Timezone Headers (Non-sticky) */}
+          <div className="flex border-b h-6 bg-background relative z-30">
+            {days.map((day) => (
+              <div key={day} className="flex" style={{ minWidth: DAY_WIDTH }}>
+                {/* Asia: 00:00 - 08:00 */}
+                <div className="flex-1 bg-orange-100/50 text-[10px] text-orange-800 flex items-center justify-center border-r font-medium border-orange-200">
+                  Asia
+                </div>
+                {/* CET: 08:00 - 16:00 */}
+                <div className="flex-1 bg-blue-100/50 text-[10px] text-blue-800 flex items-center justify-center border-r font-medium border-blue-200">
+                  CET
+                </div>
+                {/* NA: 16:00 - 24:00 */}
+                <div className="flex-1 bg-green-100/50 text-[10px] text-green-800 flex items-center justify-center border-r font-medium border-green-200">
+                  NA
+                </div>
+              </div>
+            ))}
+          </div>
+
           {/* Days Background */}
           <div className="flex border-b h-10 sticky top-0 bg-background z-20">
             {days.map((day) => (
