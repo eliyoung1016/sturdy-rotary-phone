@@ -65,10 +65,6 @@ export function SimulationViewWrapper({
         setSaveMessage(result.error || "Failed to save");
       } else {
         setSaveMessage("Simulation saved successfully!");
-        // Redirect to comparison page after successful save
-        setTimeout(() => {
-          router.push(`/simulations/${simulation.id}/comparison`);
-        }, 1000);
       }
     } catch (err) {
       setSaveMessage("Failed to save simulation");

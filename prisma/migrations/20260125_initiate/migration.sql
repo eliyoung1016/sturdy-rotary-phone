@@ -61,7 +61,7 @@ CREATE TABLE simulations (
 
 -- Seed Data
 INSERT INTO master_tasks (name, type, duration, color, is_cash_confirmed, requires_working_hours) VALUES
-('Order Validation', 'PROCESS', 240, 'spot-blue-1', 0, 1),
+('Order Validation', 'PROCESS', 180, 'spot-blue-1', 0, 1),
 ('Aggregation of Orders', 'PROCESS', 120, 'spot-blue-1', 0, 1),
 ('Portfolio Valuation', 'PROCESS', 210, 'spot-mauve-1', 0, 0),
 ('NAV Generation', 'PROCESS', 120, 'spot-mauve-1', 0, 0),

@@ -139,8 +139,21 @@ const TaskRow = ({
   updateTaskOnMove,
   recalculateDependentTasks,
 }: TaskRowProps) => {
-  const { register, setValue, watch } = useFormContext();
-  const taskValues = watch(`${controlName}.${index}`);
+  const { register, setValue, watch, control } = useFormContext();
+
+  const taskId = watch(`${controlName}.${index}.taskId`);
+  const type = watch(`${controlName}.${index}.type`);
+  const dependsOnTempId = watch(`${controlName}.${index}.dependsOnTempId`);
+  const dependencyType = watch(`${controlName}.${index}.dependencyType`);
+  const dependencyDelay = watch(`${controlName}.${index}.dependencyDelay`);
+  const saveToMaster = watch(`${controlName}.${index}.saveToMaster`);
+  const isCashConfirmed = watch(`${controlName}.${index}.isCashConfirmed`);
+  const requiresWorkingHours = watch(
+    `${controlName}.${index}.requiresWorkingHours`,
+  );
+  const color = watch(`${controlName}.${index}.color`);
+  const tempId = getValues(`${controlName}.${index}.tempId`);
+
   const [openPopoverId, setOpenPopoverId] = useState<boolean>(false);
   const [openAttributesPopoverId, setOpenAttributesPopoverId] =
     useState<boolean>(false);
@@ -151,18 +164,16 @@ const TaskRow = ({
     return found ? found.color : "#3b82f6";
   };
 
-  const getDependencyLabel = (taskValues: any) => {
-    if (!taskValues.dependsOnTempId) return "None";
+  const getDependencyLabel = () => {
+    if (!dependsOnTempId) return "None";
     const allTasks = getValues(controlName);
-    const parent = allTasks.find(
-      (t: any) => t.tempId === taskValues.dependsOnTempId,
-    );
+    const parent = allTasks.find((t: any) => t.tempId === dependsOnTempId);
     if (!parent) return "Unknown";
 
     let label = parent.name || "Task";
-    if (taskValues.dependencyType === "TIME_LAG") {
-      label += ` (+${taskValues.dependencyDelay}m)`;
-    } else if (taskValues.dependencyType === "NO_RELATION") {
+    if (dependencyType === "TIME_LAG") {
+      label += ` (+${dependencyDelay}m)`;
+    } else if (dependencyType === "NO_RELATION") {
       label += ` (No Rel)`;
     }
     return label;
@@ -179,12 +190,12 @@ const TaskRow = ({
       .filter((f) => f.value !== currentTempId);
   };
 
-  if (!taskValues) return null;
+  if (!tempId) return null;
 
   return (
     <SortableTaskItem id={id}>
       {({ attributes, listeners }) => (
-        <div className="grid grid-cols-[30px_1fr_100px_280px_1fr_80px_40px] gap-2 items-center px-3 py-2">
+        <div className="grid grid-cols-[30px_1fr_100px_280px_0.9fr_90px_30px] gap-2 items-center px-3 py-2">
           <div
             {...attributes}
             {...listeners}
@@ -201,9 +212,7 @@ const TaskRow = ({
           <div className="space-y-1">
             <Select
               disabled={readOnly}
-              value={
-                taskValues.taskId ? taskValues.taskId.toString() : "custom"
-              }
+              value={taskId ? taskId.toString() : "custom"}
               onValueChange={(val) => {
                 const currentVal = getValues(`${controlName}.${index}`);
                 if (val === "custom") {
@@ -247,12 +256,13 @@ const TaskRow = ({
               </SelectContent>
             </Select>
 
-            {!taskValues.taskId ? (
+            {!taskId ? (
               <div className="flex flex-col gap-1 w-full">
                 <Input
                   disabled={readOnly}
                   placeholder="Task Name"
                   className="h-9 text-xs"
+                  defaultValue={getValues(`${controlName}.${index}.name`)}
                   {...register(`${controlName}.${index}.name`)}
                 />
                 <div className="flex items-center gap-2">
@@ -260,7 +270,7 @@ const TaskRow = ({
                     disabled={readOnly}
                     id={`saveToMaster-${id}`}
                     className="h-3.5 w-3.5"
-                    checked={!!taskValues.saveToMaster}
+                    checked={!!saveToMaster}
                     onCheckedChange={(checked) => {
                       setValue(
                         `${controlName}.${index}.saveToMaster`,
@@ -286,12 +296,14 @@ const TaskRow = ({
 
           <div>
             <Select
-              disabled={readOnly || !!taskValues.taskId}
-              value={taskValues.type || "PROCESS"}
+              disabled={readOnly || !!taskId}
+              value={type || "PROCESS"}
               onValueChange={(val) => {
                 const newType = val as "PROCESS" | "CUTOFF";
-                const newDuration =
-                  newType === "CUTOFF" ? 0 : taskValues.duration;
+                const currentDuration = getValues(
+                  `${controlName}.${index}.duration`,
+                );
+                const newDuration = newType === "CUTOFF" ? 0 : currentDuration;
                 const currentTasks = [...getValues(controlName)];
 
                 currentTasks[index] = {
@@ -300,7 +312,7 @@ const TaskRow = ({
                   duration: newDuration,
                 };
 
-                if (newDuration !== taskValues.duration) {
+                if (newDuration !== currentDuration) {
                   const updatedTasks = recalculateDependentTasks(
                     currentTasks[index].tempId,
                     currentTasks,
@@ -324,14 +336,17 @@ const TaskRow = ({
           <div className="grid grid-cols-[60px_1fr_1fr] gap-1">
             <Select
               disabled={readOnly}
-              value={taskValues.dayOffset.toString()}
+              value={
+                getValues(`${controlName}.${index}.dayOffset`)?.toString() ||
+                "0"
+              }
               onValueChange={(val) => {
                 const newOffset = Number(val);
                 const currentTasks = [...getValues(controlName)];
                 const updatedTasks = updateTaskOnMove(
                   index,
                   newOffset,
-                  taskValues.startTime || "09:00",
+                  getValues(`${controlName}.${index}.startTime`) || "09:00",
                   currentTasks,
                 );
                 setValue(controlName, updatedTasks);
@@ -354,7 +369,7 @@ const TaskRow = ({
               disabled={readOnly}
               type="time"
               className="h-9 text-xs px-1"
-              value={taskValues.startTime || ""}
+              defaultValue={getValues(`${controlName}.${index}.startTime`)}
               onFocus={(e) => {
                 focusValueRef.current = e.target.value;
               }}
@@ -369,7 +384,7 @@ const TaskRow = ({
 
                 const updatedTasks = updateTaskOnMove(
                   index,
-                  taskValues.dayOffset,
+                  getValues(`${controlName}.${index}.dayOffset`),
                   newValue,
                   currentTasks,
                 );
@@ -385,9 +400,9 @@ const TaskRow = ({
 
             <Input
               type="number"
-              disabled={readOnly || taskValues.type === "CUTOFF"}
+              disabled={readOnly || type === "CUTOFF"}
               className="h-9 text-xs px-1"
-              value={taskValues.duration ?? 0}
+              defaultValue={getValues(`${controlName}.${index}.duration`) ?? 0}
               onFocus={(e) => {
                 focusValueRef.current = e.target.value;
               }}
@@ -432,12 +447,10 @@ const TaskRow = ({
                   disabled={readOnly}
                   className={cn(
                     "w-full h-9 text-xs justify-between px-2 font-normal",
-                    !taskValues.dependsOnTempId && "text-muted-foreground",
+                    !dependsOnTempId && "text-muted-foreground",
                   )}
                 >
-                  <span className="truncate">
-                    {getDependencyLabel(taskValues)}
-                  </span>
+                  <span className="truncate">{getDependencyLabel()}</span>
                 </Button>
               </PopoverTrigger>
               <PopoverContent
@@ -457,7 +470,7 @@ const TaskRow = ({
                   <div className="space-y-1">
                     <Label className="text-xs">Parent Task</Label>
                     <Select
-                      value={taskValues.dependsOnTempId || "none"}
+                      value={dependsOnTempId || "none"}
                       onValueChange={(val) => {
                         const newVal = val === "none" ? undefined : val;
                         const currentTasks = [...getValues(controlName)];
@@ -489,7 +502,7 @@ const TaskRow = ({
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="none">None</SelectItem>
-                        {getDependencyOptions(taskValues.tempId).map((opt) => (
+                        {getDependencyOptions(tempId).map((opt) => (
                           <SelectItem key={opt.value} value={opt.value}>
                             {opt.label}
                           </SelectItem>
@@ -501,13 +514,13 @@ const TaskRow = ({
                   <div
                     className={cn(
                       "space-y-1",
-                      !taskValues.dependsOnTempId && "opacity-50",
+                      !dependsOnTempId && "opacity-50",
                     )}
                   >
                     <Label className="text-xs">Relation Type</Label>
                     <Select
-                      disabled={!taskValues.dependsOnTempId}
-                      value={taskValues.dependencyType || "IMMEDIATE"}
+                      disabled={!dependsOnTempId}
+                      value={dependencyType || "IMMEDIATE"}
                       onValueChange={(val) => {
                         const currentTasks = [...getValues(controlName)];
                         currentTasks[index] = {
@@ -515,9 +528,9 @@ const TaskRow = ({
                           dependencyType: val,
                         };
 
-                        if (taskValues.dependsOnTempId) {
+                        if (dependsOnTempId) {
                           const updatedTasks = recalculateDependentTasks(
-                            taskValues.dependsOnTempId,
+                            dependsOnTempId,
                             currentTasks,
                           );
                           setValue(controlName, updatedTasks);
@@ -543,20 +556,19 @@ const TaskRow = ({
                     </Select>
                   </div>
 
-                  {(taskValues.dependencyType === "TIME_LAG" ||
-                    !taskValues.dependencyType) && (
+                  {(dependencyType === "TIME_LAG" || !dependencyType) && (
                     <div
                       className={cn(
                         "space-y-1",
-                        !taskValues.dependsOnTempId && "opacity-50",
+                        !dependsOnTempId && "opacity-50",
                       )}
                     >
                       <Label className="text-xs">Lag (minutes)</Label>
                       <Input
                         type="number"
-                        disabled={!taskValues.dependsOnTempId}
+                        disabled={!dependsOnTempId}
                         className="h-8 text-xs"
-                        value={taskValues.dependencyDelay ?? 0}
+                        defaultValue={dependencyDelay ?? 0}
                         onChange={(e) => {
                           const val = Number(e.target.value);
                           const currentTasks = [...getValues(controlName)];
@@ -565,9 +577,9 @@ const TaskRow = ({
                             dependencyDelay: val,
                           };
 
-                          if (taskValues.dependsOnTempId) {
+                          if (dependsOnTempId) {
                             const updatedTasks = recalculateDependentTasks(
-                              taskValues.dependsOnTempId,
+                              dependsOnTempId,
                               currentTasks,
                             );
                             setValue(controlName, updatedTasks);
@@ -596,16 +608,16 @@ const TaskRow = ({
             <div
               className="w-3 h-3 rounded-full border border-gray-200"
               style={{
-                background: getColorValue(taskValues.color),
+                background: getColorValue(color),
               }}
-              title={`Color: ${taskValues.color || "primary"}`}
+              title={`Color: ${color || "primary"}`}
             />
-            {taskValues.isCashConfirmed && (
+            {isCashConfirmed && (
               <div title="Cash Confirmed">
                 <DollarSign className="h-3 w-3 text-green-600" />
               </div>
             )}
-            {taskValues.requiresWorkingHours && (
+            {requiresWorkingHours && (
               <div title="Requires Working Hours">
                 <Clock className="h-3 w-3 text-blue-600" />
               </div>
@@ -645,7 +657,7 @@ const TaskRow = ({
                   <div className="space-y-2">
                     <Label className="text-xs">Color</Label>
                     <ColorSelect
-                      value={taskValues.color}
+                      value={color}
                       onValueChange={(val) => {
                         const currentTasks = getValues(controlName);
                         const updatedTask = {
@@ -661,7 +673,7 @@ const TaskRow = ({
                     <Checkbox
                       id={`isCashConfirmed-${id}`}
                       className="h-4 w-4"
-                      checked={!!taskValues.isCashConfirmed}
+                      checked={!!isCashConfirmed}
                       onCheckedChange={(checked) => {
                         const currentTasks = getValues(controlName);
                         const updatedTask = {
@@ -683,7 +695,7 @@ const TaskRow = ({
                     <Checkbox
                       id={`requiresWorkingHours-${id}`}
                       className="h-4 w-4"
-                      checked={!!taskValues.requiresWorkingHours}
+                      checked={!!requiresWorkingHours}
                       onCheckedChange={(checked) => {
                         const currentTasks = getValues(controlName);
                         const updatedTask = {
@@ -713,7 +725,8 @@ const TaskRow = ({
                 </div>
               </PopoverContent>
             </Popover>
-
+          </div>
+          <div>
             <Button
               type="button"
               variant="ghost"
@@ -828,7 +841,7 @@ export function TaskListEditor({
 
       <div className="border rounded-md bg-white shadow-sm overflow-hidden">
         {/* Header Row */}
-        <div className="grid grid-cols-[30px_1fr_100px_280px_1fr_80px_40px] gap-2 px-3 py-2 bg-muted/50 border-b text-xs font-semibold text-muted-foreground">
+        <div className="grid grid-cols-[30px_1fr_100px_280px_0.9fr_90px_30px] gap-2 px-3 py-2 bg-muted/50 border-b text-xs font-semibold text-muted-foreground">
           <div></div>
           <div className="pl-1">Task Name</div>
           <div>Type</div>
