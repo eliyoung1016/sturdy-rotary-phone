@@ -1,8 +1,10 @@
 "use client";
 
-import React from "react";
+import { Trash2 } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
+import { ColorSelect } from "@/components/ui/color-select";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -11,10 +13,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ColorSelect } from "@/components/ui/color-select";
-import { Button } from "@/components/ui/button";
-import { Trash2 } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 interface Task {
   tempId: string;

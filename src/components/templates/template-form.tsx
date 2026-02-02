@@ -3,17 +3,17 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { useForm, FormProvider } from "react-hook-form";
+import { FormProvider, useForm } from "react-hook-form";
 
 import { getMasterTasks } from "@/app/actions/master-task";
 import { createTemplate, updateTemplate } from "@/app/actions/template";
+import { TaskListEditor } from "@/components/shared/task-list-editor";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { type TemplateInput, templateSchema } from "@/lib/schemas/template";
-import { TaskListEditor } from "@/components/shared/task-list-editor";
 
 interface MasterTask {
   id: number;

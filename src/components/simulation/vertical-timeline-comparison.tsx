@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useMemo } from "react";
+import { Calendar, Clock, TrendingDown } from "lucide-react";
+import { useMemo } from "react";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Clock, TrendingDown, Calendar } from "lucide-react";
 
 interface Task {
   tempId?: string;

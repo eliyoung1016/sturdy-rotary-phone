@@ -1,17 +1,17 @@
-import { getSimulationById } from "@/app/actions/simulation";
-import { SimulationViewWrapper } from "@/components/simulation/simulation-view-wrapper";
-import { Card } from "@/components/ui/card";
 import { AlertCircle, ArrowLeft, BarChart3 } from "lucide-react";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
 import { notFound } from "next/navigation";
+
+import { getSimulationById } from "@/app/actions/simulation";
+import { SimulationViewWrapper } from "@/components/simulation/simulation-view-wrapper";
+import { Button } from "@/components/ui/button";
 
 interface SimulationDetailPageProps {
   params: Promise<{ id: string }>;
 }
 
 export default async function SimulationDetailPage(
-  props: SimulationDetailPageProps
+  props: SimulationDetailPageProps,
 ) {
   const params = await props.params;
   const simulationId = parseInt(params.id);

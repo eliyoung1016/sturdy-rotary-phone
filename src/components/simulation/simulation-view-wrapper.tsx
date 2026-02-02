@@ -1,13 +1,12 @@
 "use client";
 
-import React, { useState } from "react";
-import { SimulationView } from "./simulation-view";
-import { Button } from "@/components/ui/button";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+
 import { updateSimulation } from "@/app/actions/simulation";
-import { Save, Loader2, BarChart3 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useRouter } from "next/navigation";
+import { SimulationView } from "./simulation-view";
 
 interface Task {
   tempId: string;
@@ -32,7 +31,7 @@ export function SimulationViewWrapper({
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [simulationName, setSimulationName] = useState(
-    simulation.simulationName || ""
+    simulation.simulationName || "",
   );
 
   // Parse saved state if it exists
@@ -46,7 +45,7 @@ export function SimulationViewWrapper({
   const handleSave = async (
     currentTasks: Task[],
     targetTasks: Task[],
-    metrics?: { reinvestmentGainHours?: number; idleTimeSavedMinutes?: number }
+    metrics?: { reinvestmentGainHours?: number; idleTimeSavedMinutes?: number },
   ) => {
     setIsSaving(true);
     setSaveMessage(null);

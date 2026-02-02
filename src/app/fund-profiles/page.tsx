@@ -1,3 +1,12 @@
+import { Edit2 } from "lucide-react";
+import Link from "next/link";
+
+import {
+  getFundProfiles,
+  getTemplatesForSelect,
+} from "@/app/actions/fund-profiles";
+import { FundProfileDialog } from "@/components/fund-profiles/fund-profile-dialog";
+import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -6,14 +15,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import {
-  getFundProfiles,
-  getTemplatesForSelect,
-} from "@/app/actions/fund-profiles";
-import { FundProfileDialog } from "@/components/fund-profiles/fund-profile-dialog";
-import { Edit2 } from "lucide-react";
-import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 

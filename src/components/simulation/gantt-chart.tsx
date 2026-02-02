@@ -1,7 +1,8 @@
 "use client";
 
+import { motion } from "framer-motion";
 import React, { useMemo, useRef, useState } from "react";
-import { motion, useDragControls } from "framer-motion";
+
 import { cn } from "@/lib/utils";
 
 interface DragLabelState {

@@ -1,17 +1,18 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { useForm, FormProvider, useWatch } from "react-hook-form";
-import { GanttChart } from "./gantt-chart";
-import { TaskListEditor } from "@/components/shared/task-list-editor";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { motion, AnimatePresence } from "framer-motion";
-import { Save, Loader2 } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
+import { Loader2, Save } from "lucide-react";
+import { useEffect, useState } from "react";
+import { FormProvider, useForm, useWatch } from "react-hook-form";
+
 import { getMasterTasks } from "@/app/actions/master-task";
+import { TaskListEditor } from "@/components/shared/task-list-editor";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { useTaskDependencies } from "@/hooks/use-task-dependencies";
+import { GanttChart } from "./gantt-chart";
 
 interface Task {
   tempId: string;

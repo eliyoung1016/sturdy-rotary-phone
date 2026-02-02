@@ -553,7 +553,7 @@ export function TaskListEditor({
                                 role="combobox"
                                 disabled={readOnly}
                                 className={cn(
-                                  "w-full h-7 text-xs justify-between px-2 font-normal",
+                                  "w-full h-9 text-xs justify-between px-2 font-normal",
                                   !taskValues.dependsOnTempId &&
                                     "text-muted-foreground",
                                 )}
@@ -813,7 +813,6 @@ export function TaskListEditor({
                                       update(index, updatedTask);
                                       currentTasks[index] = updatedTask;
                                     }}
-                                    disabled={!!taskValues.taskId}
                                   />
                                   <Label
                                     htmlFor={`isCashConfirmed-${taskValues.tempId}`}

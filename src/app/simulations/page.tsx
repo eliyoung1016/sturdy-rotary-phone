@@ -1,4 +1,8 @@
-import { getAllSimulations, deleteSimulation } from "@/app/actions/simulation";
+import { AlertCircle, Clock, Edit, PlusCircle } from "lucide-react";
+import Link from "next/link";
+
+import { getAllSimulations } from "@/app/actions/simulation";
+import { DeleteSimulationButton } from "@/components/simulation/delete-simulation-button";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -15,9 +19,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { AlertCircle, PlusCircle, Trash2, Edit, Clock } from "lucide-react";
-import Link from "next/link";
-import { DeleteSimulationButton } from "@/components/simulation/delete-simulation-button";
 
 export default async function SimulationsPage() {
   const result = await getAllSimulations();

@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { Loader2, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
+
 import { deleteSimulation } from "@/app/actions/simulation";
 import { Button } from "@/components/ui/button";
-import { Trash2, Loader2 } from "lucide-react";
 
 interface DeleteSimulationButtonProps {
   simulationId: number;

@@ -1,7 +1,8 @@
 "use server";
 
-import { prisma } from "@/lib/db";
 import { revalidatePath } from "next/cache";
+
+import { prisma } from "@/lib/db";
 
 export async function getSimulationData(fundId: number) {
   try {
@@ -134,7 +135,7 @@ export async function updateSimulation(
     targetStateJson?: string;
     reinvestmentGainHours?: number;
     idleTimeSavedMinutes?: number;
-  }
+  },
 ) {
   try {
     const simulation = await prisma.simulation.update({

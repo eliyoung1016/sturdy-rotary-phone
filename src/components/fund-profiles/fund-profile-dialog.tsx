@@ -1,5 +1,9 @@
 "use client";
 
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useState, useTransition } from "react";
+import { type SubmitHandler, useForm } from "react-hook-form";
+
 import { upsertFundProfile } from "@/app/actions/fund-profiles";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,12 +23,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  FundProfileInput,
+  type FundProfileInput,
   fundProfileSchema,
 } from "@/lib/schemas/fund-profile";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useState, useTransition } from "react";
-import { useForm, SubmitHandler } from "react-hook-form";
 
 interface FundProfileDialogProps {
   profile?: FundProfileInput;

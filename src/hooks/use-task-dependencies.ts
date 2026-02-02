@@ -1,4 +1,4 @@
-import { UseFieldArrayUpdate } from "react-hook-form";
+import type { UseFieldArrayUpdate } from "react-hook-form";
 
 export interface TaskItem {
   tempId: string;

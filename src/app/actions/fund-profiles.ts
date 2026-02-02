@@ -1,11 +1,12 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
+
 import { prisma } from "@/lib/db";
 import {
+  type FundProfileInput,
   fundProfileSchema,
-  FundProfileInput,
 } from "@/lib/schemas/fund-profile";
-import { revalidatePath } from "next/cache";
 
 export async function getFundProfiles() {
   const profiles = await prisma.fundProfile.findMany({
