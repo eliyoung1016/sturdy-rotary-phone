@@ -1,6 +1,6 @@
 "use client";
 
-import { DollarSign, Pencil, Plus } from "lucide-react";
+import { DollarSign, Pencil, Plus, Clock } from "lucide-react";
 import { useState } from "react";
 import { MasterTaskDialog } from "@/components/master-tasks/master-task-dialog";
 import { Button } from "@/components/ui/button";
@@ -87,6 +87,11 @@ export function MasterTaskList({ tasks }: MasterTaskListProps) {
                       {task.isCashConfirmed && (
                         <div title="Cash Confirmed">
                           <DollarSign className="h-4 w-4 text-green-600" />
+                        </div>
+                      )}
+                      {task.requiresWorkingHours && (
+                        <div title="Requires Working Hours">
+                          <Clock className="h-4 w-4 text-blue-600" />
                         </div>
                       )}
                     </div>

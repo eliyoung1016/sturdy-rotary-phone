@@ -19,6 +19,7 @@ model MasterTask {
   duration            Int
   color               String? @default("primary")
   isCashConfirmed     Boolean @default(false) @map("is_cash_confirmed")
+  requiresWorkingHours Boolean @default(false) @map("requires_working_hours")
 
   templateTasks       TemplateTask[]
 
@@ -48,6 +49,7 @@ model TemplateTask {
   type          String           @default("PROCESS")
   color         String?          @default("primary")
   isCashConfirmed Boolean        @default(false) @map("is_cash_confirmed")
+  requiresWorkingHours Boolean   @default(false) @map("requires_working_hours")
   
   dependsOnId   Int?             @map("depends_on_id") // Integrated dependency
   dependencyType String          @default("IMMEDIATE") @map("dependency_type") // IMMEDIATE, TIME_LAG, NO_RELATION

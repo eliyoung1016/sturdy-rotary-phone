@@ -13,6 +13,7 @@ export const templateTaskSchema = z.object({
   type: z.enum(["PROCESS", "CUTOFF"]), // 'CUTOFF' or 'PROCESS'
   color: z.string().optional().default("primary"),
   isCashConfirmed: z.boolean().default(false),
+  requiresWorkingHours: z.boolean().default(false),
 
   // UI usage
   tempId: z.string(),

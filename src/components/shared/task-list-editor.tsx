@@ -17,13 +17,14 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import {
+  Clock,
   DollarSign,
   GripVertical,
   Plus,
   Settings2,
   Trash2,
 } from "lucide-react";
-import { useId, useState, useRef } from "react";
+import { useId, useRef, useState } from "react";
 import { useFieldArray, useFormContext } from "react-hook-form";
 
 import { Button } from "@/components/ui/button";
@@ -57,6 +58,7 @@ interface MasterTask {
   type: "PROCESS" | "CUTOFF";
   color: string;
   isCashConfirmed: boolean;
+  requiresWorkingHours: boolean;
 }
 
 interface TaskListEditorProps {
@@ -199,6 +201,7 @@ export function TaskListEditor({
         type: defaultMaster?.type || "PROCESS",
         color: defaultMaster?.color || "primary",
         isCashConfirmed: defaultMaster?.isCashConfirmed || false,
+        requiresWorkingHours: defaultMaster?.requiresWorkingHours || false,
         dependsOnTempId: undefined,
         saveToMaster: false,
       });
@@ -260,6 +263,7 @@ export function TaskListEditor({
                   saveToMaster?: boolean;
                   color?: string;
                   isCashConfirmed?: boolean;
+                  requiresWorkingHours?: boolean;
                 };
                 const taskValues = currentTask || field;
 
@@ -303,6 +307,7 @@ export function TaskListEditor({
                                   duration: 0,
                                   color: "primary",
                                   isCashConfirmed: false,
+                                  requiresWorkingHours: false,
                                 });
                               } else {
                                 const mt = masterTasks.find(
@@ -316,6 +321,8 @@ export function TaskListEditor({
                                   type: mt?.type || "PROCESS",
                                   color: mt?.color || "primary",
                                   isCashConfirmed: mt?.isCashConfirmed || false,
+                                  requiresWorkingHours:
+                                    mt?.requiresWorkingHours || false,
                                   saveToMaster: false,
                                 });
                               }
@@ -698,6 +705,11 @@ export function TaskListEditor({
                               <DollarSign className="h-3 w-3 text-green-600" />
                             </div>
                           )}
+                          {taskValues.requiresWorkingHours && (
+                            <div title="Requires Working Hours">
+                              <Clock className="h-3 w-3 text-blue-600" />
+                            </div>
+                          )}
 
                           <Popover
                             open={openAttributesPopoverId === taskValues.tempId}
@@ -754,7 +766,7 @@ export function TaskListEditor({
                                   <Checkbox
                                     id={`isCashConfirmed-${taskValues.tempId}`}
                                     className="h-4 w-4"
-                                    checked={taskValues.isCashConfirmed}
+                                    checked={!!taskValues.isCashConfirmed}
                                     onCheckedChange={(checked) => {
                                       const currentTasks = getValues(name);
                                       const updatedTask = {
@@ -770,6 +782,28 @@ export function TaskListEditor({
                                     className="cursor-pointer text-xs"
                                   >
                                     Is Cash Confirmed?
+                                  </Label>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <Checkbox
+                                    id={`requiresWorkingHours-${taskValues.tempId}`}
+                                    className="h-4 w-4"
+                                    checked={!!taskValues.requiresWorkingHours}
+                                    onCheckedChange={(checked) => {
+                                      const currentTasks = getValues(name);
+                                      const updatedTask = {
+                                        ...currentTasks[index],
+                                        requiresWorkingHours: !!checked,
+                                      };
+                                      update(index, updatedTask);
+                                      currentTasks[index] = updatedTask;
+                                    }}
+                                  />
+                                  <Label
+                                    htmlFor={`requiresWorkingHours-${taskValues.tempId}`}
+                                    className="cursor-pointer text-xs"
+                                  >
+                                    Working Hours?
                                   </Label>
                                 </div>
                                 <div className="pt-2 flex justify-end">

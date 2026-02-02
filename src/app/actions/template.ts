@@ -45,6 +45,7 @@ export async function createTemplate(data: TemplateInput) {
               type: task.type || "PROCESS",
               color: task.color || "primary",
               isCashConfirmed: task.isCashConfirmed,
+              requiresWorkingHours: task.requiresWorkingHours,
             },
           });
           masterTaskId = newMasterTask.id;
@@ -62,6 +63,7 @@ export async function createTemplate(data: TemplateInput) {
             type: task.type || "PROCESS",
             color: task.color || "primary",
             isCashConfirmed: task.isCashConfirmed,
+            requiresWorkingHours: task.requiresWorkingHours,
             dependencyType: task.dependencyType || "IMMEDIATE",
             dependencyDelay: task.dependencyDelay || 0,
           },
@@ -125,6 +127,7 @@ export async function getTemplate(id: number) {
       type: t.type as "PROCESS" | "CUTOFF",
       color: t.color || "primary",
       isCashConfirmed: t.isCashConfirmed,
+      requiresWorkingHours: t.requiresWorkingHours,
       dependsOnTempId: undefined as string | undefined, // mapped later
       dependsOnId: t.dependsOnId,
       dependencyType:
@@ -201,6 +204,7 @@ export async function updateTemplate(id: number, data: TemplateInput) {
               type: task.type || "PROCESS",
               color: task.color || "primary",
               isCashConfirmed: task.isCashConfirmed,
+              requiresWorkingHours: task.requiresWorkingHours,
             },
           });
           masterTaskId = newMasterTask.id;
@@ -218,6 +222,7 @@ export async function updateTemplate(id: number, data: TemplateInput) {
             type: task.type || "PROCESS",
             color: task.color || "primary",
             isCashConfirmed: task.isCashConfirmed,
+            requiresWorkingHours: task.requiresWorkingHours,
             dependencyType: task.dependencyType || "IMMEDIATE",
             dependencyDelay: task.dependencyDelay || 0,
           },

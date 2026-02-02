@@ -26,6 +26,8 @@ interface Task {
   dependsOnTempId?: string | null;
   taskId?: number;
   saveToMaster?: boolean;
+  isCashConfirmed?: boolean;
+  requiresWorkingHours?: boolean;
 }
 
 interface Template {
@@ -68,6 +70,7 @@ interface MasterTask {
   type: "PROCESS" | "CUTOFF";
   color: string;
   isCashConfirmed: boolean;
+  requiresWorkingHours: boolean;
 }
 
 export function SimulationView({
@@ -96,6 +99,8 @@ export function SimulationView({
       dependsOnTempId: t.dependsOnTempId || t.dependsOnId?.toString() || null,
       taskId: t.taskId,
       saveToMaster: false,
+      isCashConfirmed: t.isCashConfirmed,
+      requiresWorkingHours: t.requiresWorkingHours,
     }));
   };
 

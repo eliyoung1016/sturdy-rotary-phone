@@ -18,6 +18,8 @@ interface Task {
   color?: string;
   sequenceOrder: number;
   dependsOnId?: number | null;
+  isCashConfirmed?: boolean;
+  requiresWorkingHours?: boolean;
 }
 
 interface SimulationViewWrapperProps {

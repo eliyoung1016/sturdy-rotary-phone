@@ -56,6 +56,7 @@ export function MasterTaskForm({
       duration: initialData?.duration ?? 30,
       color: initialData?.color || "primary",
       isCashConfirmed: initialData?.isCashConfirmed || false,
+      requiresWorkingHours: initialData?.requiresWorkingHours || false,
     },
     mode: "onChange",
   });
@@ -156,7 +157,8 @@ export function MasterTaskForm({
         </div>
 
         {/* Row 2: Duration, Color, Cash Confirmed */}
-        <div className="grid grid-cols-3 gap-3 items-end">
+        {/* Row 2: Duration & Color */}
+        <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1">
             <Label
               htmlFor="duration"
@@ -193,8 +195,11 @@ export function MasterTaskForm({
               />
             </div>
           </div>
+        </div>
 
-          <div className="flex items-center space-x-2 h-8 pb-1">
+        {/* Row 3: Checkboxes */}
+        <div className="flex gap-6 pt-1">
+          <div className="flex items-center space-x-2">
             <Checkbox
               id="isCashConfirmed"
               checked={watch("isCashConfirmed")}
@@ -202,8 +207,27 @@ export function MasterTaskForm({
                 setValue("isCashConfirmed", checked as boolean)
               }
             />
-            <Label htmlFor="isCashConfirmed" className="text-sm font-medium">
+            <Label
+              htmlFor="isCashConfirmed"
+              className="text-sm font-medium cursor-pointer"
+            >
               Cash Confirmed
+            </Label>
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="requiresWorkingHours"
+              checked={watch("requiresWorkingHours")}
+              onCheckedChange={(checked) =>
+                setValue("requiresWorkingHours", checked as boolean)
+              }
+            />
+            <Label
+              htmlFor="requiresWorkingHours"
+              className="text-sm font-medium cursor-pointer"
+            >
+              Working Hours
             </Label>
           </div>
         </div>
