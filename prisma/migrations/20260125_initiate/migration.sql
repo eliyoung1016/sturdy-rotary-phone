@@ -59,29 +59,49 @@ CREATE TABLE simulations (
 
 -- Seed Data
 INSERT INTO master_tasks (name, type, duration, color, is_cash_confirmed) VALUES
-('Order Validation & KYC', 'PROCESS', 240, 'spot-blue-1', 0),
+('Order Validation', 'PROCESS', 240, 'spot-blue-1', 0),
 ('Aggregation of Orders', 'PROCESS', 120, 'spot-blue-1', 0),
 ('Portfolio Valuation', 'PROCESS', 210, 'spot-mauve-1', 0),
 ('NAV Generation', 'PROCESS', 120, 'spot-mauve-1', 0),
-('Cash Forecasting / Reporting', 'PROCESS', 60, 'spot-green-1', 1),
+('Cash Forecasting / Reporting', 'PROCESS', 60, 'spot-green-1', 0),
 ('Reinvestment Execution', 'PROCESS', 300, 'spot-orange-1', 0),
 ('Trade Matching/Affirmation', 'PROCESS', 180, 'spot-tuquoise-1', 0),
 ('Forex (FX) Execution', 'PROCESS', 60, 'spot-orange-1', 0),
 ('Cash Settlement (Incoming)', 'PROCESS', 180, 'spot-green-1', 0),
 ('Redemption Payments (Outgoing)', 'PROCESS', 180, 'spot-blue-2', 0),
-('Final Reconciliation', 'PROCESS', 180, 'spot-mauve-2', 0);
+('Final Reconciliation', 'PROCESS', 180, 'spot-mauve-2', 1);
 
-INSERT INTO templates (name, description) VALUES ('Standard European UCITS T+2', 'Standard T+2 settlement cycle');
+INSERT INTO templates (name, description) VALUES ('Standard T+2 settlement cycle', 'Standard European T+2 settlement cycle');
 
-INSERT INTO template_tasks (template_id, task_id, name, duration, sequence_order, day_offset, type, color, is_cash_confirmed, start_time) VALUES
-(1, 1,  'Order Validation & KYC',         240, 1,  0, 'PROCESS', 'spot-blue-1',   0, '09:00'),
-(1, 2,  'Aggregation of Orders',          120, 2,  0, 'PROCESS', 'spot-blue-1',   0, '13:00'),
-(1, 3,  'Portfolio Valuation',            210, 3,  0, 'PROCESS', 'spot-mauve-1', 0, '17:30'),
-(1, 4,  'NAV Generation',                 120, 4,  0, 'PROCESS', 'spot-mauve-1', 0, '21:00'),
-(1, 5,  'Cash Forecasting / Reporting',    60, 5,  1, 'PROCESS', 'spot-green-1',  1, '08:30'),
-(1, 6,  'Reinvestment Execution',         300, 6,  1, 'PROCESS', 'spot-orange-1', 0, '10:00'),
-(1, 7,  'Trade Matching/Affirmation',     180, 7,  1, 'PROCESS', 'spot-tuquoise-1', 0, '15:00'),
-(1, 8,  'Forex (FX) Execution',            60, 8,  1, 'PROCESS', 'spot-orange-1', 0, '16:00'),
-(1, 9,  'Cash Settlement (Incoming)',     180, 9,  2, 'PROCESS', 'spot-green-1',  0, '08:00'),
-(1, 10, 'Redemption Payments (Outgoing)', 180, 10, 2, 'PROCESS', 'spot-blue-2',    0, '11:00'),
-(1, 11, 'Final Reconciliation',           180, 11, 2, 'PROCESS', 'spot-mauve-2',   0, '15:00');
+INSERT INTO template_tasks (id, template_id, task_id, name, duration, sequence_order, day_offset, type, color, is_cash_confirmed, start_time, depends_on_id, dependency_type, dependency_delay) VALUES
+(1, 1, 1,  'Order Validation',               240, 1,  0, 'PROCESS', 'spot-blue-1',   0, '09:00', NULL, 'IMMEDIATE', 0),
+(2, 1, 2,  'Aggregation of Orders',          120, 2,  0, 'PROCESS', 'spot-blue-1',   0, '13:00', 1,    'IMMEDIATE', 0),
+(3, 1, 3,  'Portfolio Valuation',            210, 3,  0, 'PROCESS', 'spot-mauve-1', 0, '17:30', 2,    'TIME_LAG', 150),
+(4, 1, 4,  'NAV Generation',                 120, 4,  0, 'PROCESS', 'spot-mauve-1', 0, '21:00', 3,    'IMMEDIATE', 0),
+(5, 1, 5,  'Cash Forecasting / Reporting',    60, 5,  1, 'PROCESS', 'spot-green-1',  0, '08:30', 4,    'TIME_LAG', 570),
+(6, 1, 6,  'Reinvestment Execution',         300, 6,  1, 'PROCESS', 'spot-orange-1', 0, '10:00', 5,    'TIME_LAG', 30),
+(7, 1, 7,  'Trade Matching/Affirmation',     180, 7,  1, 'PROCESS', 'spot-tuquoise-1', 0, '15:00', 6,    'IMMEDIATE', 0),
+(8, 1, 8,  'Forex (FX) Execution',            60, 8,  1, 'PROCESS', 'spot-orange-1', 0, '16:00', 6,    'TIME_LAG', 60),
+(9, 1, 9,  'Cash Settlement (Incoming)',     180, 9,  2, 'PROCESS', 'spot-green-1',  0, '08:00', 7,    'TIME_LAG', 840),
+(10, 1, 10, 'Redemption Payments (Outgoing)', 180, 10, 2, 'PROCESS', 'spot-blue-2',    0, '11:00', 9,    'IMMEDIATE', 0),
+(11, 1, 11, 'Final Reconciliation',           180, 11, 2, 'PROCESS', 'spot-mauve-2', 1, '15:00', 10,   'TIME_LAG', 60);
+
+INSERT INTO master_tasks (name, type, duration, color, is_cash_confirmed) VALUES
+('NAV Calculation', 'PROCESS', 180, 'spot-mauve-1', 0),
+('Trade Allocation & Affirmation', 'PROCESS', 180, 'spot-tuquoise-1', 0),
+('Final Cash Confirmation', 'PROCESS', 60, 'spot-green-1', 1);
+
+INSERT INTO templates (name, description) VALUES ('T+1 Settlement Cycle', 'Accelerated settlement cycle where trade matching and affirmation happen on T, and settlement/reinvestment on T+1.');
+
+INSERT INTO template_tasks (id, template_id, task_id, name, duration, sequence_order, day_offset, type, color, is_cash_confirmed, start_time, depends_on_id, dependency_type, dependency_delay) VALUES
+(12, 2, 1,  'Order Validation',               240, 1,  0, 'PROCESS', 'spot-blue-1',   0, '09:00', NULL, 'IMMEDIATE', 0),
+(13, 2, 2,  'Aggregation of Orders',          90,  2,  0, 'PROCESS', 'spot-blue-1',   0, '13:00', 12,   'IMMEDIATE', 0),
+(14, 2, 12, 'NAV Calculation',                180, 3,  0, 'PROCESS', 'spot-mauve-1',  0, '17:30', 13,   'TIME_LAG', 180),
+(15, 2, 13, 'Trade Allocation & Affirmation', 180, 4,  0, 'PROCESS', 'spot-tuquoise-1', 0, '18:00', 13,   'TIME_LAG', 210),
+(16, 2, 14, 'Final Cash Confirmation',        60,  5,  1, 'PROCESS', 'spot-green-1',  1, '07:00', 15,   'TIME_LAG', 600),
+(17, 2, 6,  'Reinvestment Execution',         120, 6,  1, 'PROCESS', 'spot-orange-1', 0, '08:00', 16,   'IMMEDIATE', 0),
+(18, 2, 9,  'Cash Settlement (Incoming)',     120, 7,  1, 'PROCESS', 'spot-green-1',  0, '09:00', 16,   'TIME_LAG', 60),
+(19, 2, 8,  'Forex (FX) Execution',           120, 8,  1, 'PROCESS', 'spot-orange-1', 0, '09:00', 16,   'TIME_LAG', 60);
+
+INSERT INTO fund_profiles (name, isin, current_template_id, target_template_id) VALUES
+('Global Equity Fund A', 'LU1234567890', 1, 2);

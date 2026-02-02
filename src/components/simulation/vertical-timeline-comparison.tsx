@@ -197,7 +197,7 @@ export function VerticalTimelineComparison({
       {/* Header with Fund Name */}
       <div className="text-center">
         <h2 className="text-3xl font-bold">{fundName}</h2>
-        <p className="text-muted-foreground">Practice Comparison Timeline</p>
+        <p className="text-muted-foreground">Comparison Timeline</p>
       </div>
 
       {/* Metrics Summary */}

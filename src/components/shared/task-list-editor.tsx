@@ -23,7 +23,7 @@ import {
   Settings2,
   Trash2,
 } from "lucide-react";
-import { useState } from "react";
+import { useId, useState } from "react";
 import { useFieldArray, useFormContext } from "react-hook-form";
 
 import { Button } from "@/components/ui/button";
@@ -135,6 +135,8 @@ export function TaskListEditor({
     }),
   );
 
+  const dndContextId = useId();
+
   const getDependencyLabel = (taskValues: any) => {
     if (!taskValues.dependsOnTempId) return "None";
     const parent = getValues(name).find(
@@ -245,6 +247,7 @@ export function TaskListEditor({
 
         <div className="max-h-[600px] overflow-y-auto">
           <DndContext
+            id={dndContextId}
             sensors={sensors}
             collisionDetection={closestCenter}
             onDragEnd={handleDragEnd}
@@ -567,7 +570,6 @@ export function TaskListEditor({
                               className="w-[300px] p-3"
                               align="start"
                               onPointerDownOutside={(e) => {
-                                // Prevent closing when clicking into a Select content (portal)
                                 if (
                                   e.target instanceof Element &&
                                   (e.target.closest('[role="listbox"]') ||
@@ -590,7 +592,6 @@ export function TaskListEditor({
                                       const updatedTask = {
                                         ...currentTasks[index],
                                         dependsOnTempId: newVal,
-                                        // Reset type/delay if removing dependency
                                         ...(newVal
                                           ? {}
                                           : {
@@ -598,16 +599,18 @@ export function TaskListEditor({
                                               dependencyDelay: 0,
                                             }),
                                       };
-                                      update(index, updatedTask);
-                                      currentTasks[index] = updatedTask;
 
-                                      if (newVal)
+                                      update(index, updatedTask);
+
+                                      if (newVal) {
+                                        currentTasks[index] = updatedTask;
                                         enforceDependencyConstraint(
                                           index,
                                           newVal,
                                           currentTasks,
                                           update,
                                         );
+                                      }
                                     }}
                                   >
                                     <SelectTrigger className="h-8 text-xs">
@@ -695,7 +698,7 @@ export function TaskListEditor({
                                       type="number"
                                       disabled={!taskValues.dependsOnTempId}
                                       className="h-8 text-xs"
-                                      value={taskValues.dependencyDelay || 0}
+                                      value={taskValues.dependencyDelay ?? 0}
                                       onChange={(e) => {
                                         const val = Number(e.target.value);
                                         const currentTasks = getValues(name);
