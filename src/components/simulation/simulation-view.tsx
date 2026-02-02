@@ -2,7 +2,7 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { Loader2, Save } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { FormProvider, useForm, useWatch } from "react-hook-form";
 
 import { getMasterTasks } from "@/app/actions/master-task";
@@ -136,15 +136,20 @@ export function SimulationView({
     }
   }, [fund.id, simulationId, form]);
 
+  const workingHours = useMemo(
+    () => ({
+      start: fund.officeStart || "09:00",
+      end: fund.officeEnd || "17:00",
+    }),
+    [fund.officeStart, fund.officeEnd],
+  );
+
   const {
     adjustForWorkingHours,
     getAbsoluteMinutes,
     getDayAndTime,
     updateDependentTasks,
-  } = useTaskDependencies({
-    start: fund.officeStart || "09:00",
-    end: fund.officeEnd || "17:00",
-  });
+  } = useTaskDependencies(workingHours);
 
   // Watch tasks for Gantt Chart
   const currentTasks = useWatch({
@@ -352,10 +357,7 @@ export function SimulationView({
               name={activeTasksFieldName}
               masterTasks={masterTasks}
               className="w-full"
-              workingHours={{
-                start: fund.officeStart || "09:00",
-                end: fund.officeEnd || "17:00",
-              }}
+              workingHours={workingHours}
             />
           </motion.div>
         </AnimatePresence>

@@ -22,6 +22,7 @@ interface MasterTask {
   type: "PROCESS" | "CUTOFF";
   color: string;
   isCashConfirmed: boolean;
+  requiresWorkingHours: boolean;
 }
 
 interface TemplateFormProps {
