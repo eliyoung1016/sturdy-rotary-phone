@@ -1,7 +1,7 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Clock, DollarSign, GripVertical, Trash2 } from "lucide-react";
-import { useRef, useState } from "react";
+import { useRef, useState, memo } from "react";
 import {
   type UseFieldArrayRemove,
   type UseFieldArrayUpdate,
@@ -32,7 +32,7 @@ interface TaskRowProps {
   update: UseFieldArrayUpdate<any, any>;
   remove: UseFieldArrayRemove;
   replace: (items: TaskItem[]) => void;
-  getValues: (payload?: string | string[]) => any;
+  taskNameMap: Map<string, string>;
   updateTaskOnMove: (
     index: number,
     dayOffset: number,
@@ -84,7 +84,7 @@ function SortableTaskItem({
   );
 }
 
-export function TaskRow({
+export const TaskRow = memo(function TaskRow({
   id,
   index,
   controlName,
@@ -93,16 +93,17 @@ export function TaskRow({
   update,
   remove,
   replace,
-  getValues,
+  taskNameMap,
   updateTaskOnMove,
   recalculateDependentTasks,
   onOpenColor,
   onOpenDependency,
 }: TaskRowProps) {
-  const { register, setValue, watch } = useFormContext();
+  const { register, setValue, watch, getValues } = useFormContext();
   const taskValues = watch(`${controlName}.${index}`) as TaskItem;
   const focusValueRef = useRef<string>("");
 
+  // Only run this when dependencies change
   const getColorValue = (colorName: string | undefined): string => {
     const found = TASK_COLORS.find((c) => c.value === (colorName || "primary"));
     return found ? found.color : "#3b82f6";
@@ -110,11 +111,13 @@ export function TaskRow({
 
   const getDependencyLabel = (task: TaskItem) => {
     if (!task.dependsOnTempId) return "None";
-    const allTasks = getValues(controlName) as TaskItem[];
-    const parent = allTasks.find((t) => t.tempId === task.dependsOnTempId);
-    if (!parent) return "Unknown";
+    // O(1) lookup using the passed map instead of O(N) scan
+    const parentName = taskNameMap.get(task.dependsOnTempId);
 
-    let label = parent.name || "Task";
+    // If not in map, might be stale or ID, fallback to "Unknown" or ID?
+    if (!parentName) return "Unknown";
+
+    let label = parentName;
     if (task.dependencyType === "TIME_LAG") {
       label += ` (+${task.dependencyDelay}m)`;
     } else if (task.dependencyType === "NO_RELATION") {
@@ -471,4 +474,4 @@ export function TaskRow({
       )}
     </SortableTaskItem>
   );
-}
+});

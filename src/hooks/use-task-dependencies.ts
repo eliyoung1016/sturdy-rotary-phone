@@ -71,76 +71,102 @@ export function useTaskDependencies(workingHours?: WorkingHours) {
     [minutesToTime],
   );
 
-  // Recurvsively update dependent tasks based on parent's new state
+  // Recursively update dependent tasks based on parent's new state
+  // Optimized to build a dependency graph once and traverse it
   const recalculateDependentTasks = useCallback(
     <T extends TaskItem>(
       changedTaskTempId: string, // The ID of the task that changed (parent)
       currentTasks: T[],
-      visited = new Set<string>(),
     ): T[] => {
-      if (visited.has(changedTaskTempId)) return currentTasks;
-      visited.add(changedTaskTempId);
-
-      const parentTask = currentTasks.find(
-        (t) => t.tempId === changedTaskTempId,
-      );
-      if (!parentTask) return currentTasks;
-
-      const parentStart = getAbsoluteMinutes(
-        parentTask.dayOffset,
-        parentTask.startTime,
-      );
-      const parentEnd = parentStart + (parentTask.duration || 0);
-
-      // Find children
-      const dependentTasks = currentTasks
-        .map((t, index) => ({ task: t, index }))
-        .filter(
-          ({ task }) =>
-            task.dependsOnTempId === changedTaskTempId ||
-            (task as any).dependsOnId?.toString() === changedTaskTempId,
-        );
-
-      dependentTasks.forEach(({ task: childTask, index: childIndex }) => {
-        if (childTask.dependencyType === "NO_RELATION") return;
-
-        const requiredDelay =
-          childTask.dependencyType === "TIME_LAG"
-            ? childTask.dependencyDelay || 0
-            : 0;
-
-        const newStartTotal = parentEnd + requiredDelay;
-
-        // Check if update is needed
-        const currentChildStart = getAbsoluteMinutes(
-          childTask.dayOffset,
-          childTask.startTime,
-        );
-
-        if (currentChildStart !== newStartTotal) {
-          let { dayOffset, timeStr } = getDayAndTime(newStartTotal);
-
-          if (workingHours && childTask.requiresWorkingHours) {
-            const adjusted = adjustForWorkingHours(
-              dayOffset,
-              timeStr,
-              childTask.duration,
-            );
-            dayOffset = adjusted.dayOffset;
-            timeStr = adjusted.startTime;
-          }
-
-          const updatedTask = {
-            ...currentTasks[childIndex],
-            dayOffset,
-            startTime: timeStr,
-          };
-          currentTasks[childIndex] = updatedTask;
-
-          // Recurse
-          recalculateDependentTasks(childTask.tempId, currentTasks, visited);
+      // 1. Build adjacency list (parent -> [children indices])
+      // This turns the lookup from O(N) per recursion to O(1)
+      const adjacencyMap = new Map<string, number[]>();
+      currentTasks.forEach((t, idx) => {
+        const parentId =
+          t.dependsOnTempId || (t as any).dependsOnId?.toString();
+        if (parentId) {
+          const children = adjacencyMap.get(parentId) || [];
+          children.push(idx);
+          adjacencyMap.set(parentId, children);
         }
       });
+
+      // 2. Queue for BFS traversal (or stack for DFS)
+      // We want to process updates in dependency order.
+      // Since we are propagating changes locally, a simple queue works.
+      const queue: string[] = [changedTaskTempId];
+      const visited = new Set<string>();
+
+      // We maintain a working copy if necessary, but we are mutating currentTasks elements if they are objects.
+      // However, for React state immutability, we should probably be careful.
+      // The calling code typically does `const tasks = [...current]` or similar.
+      // Modifying objects inside the array is fine if the array itself was cloned shallowly
+      // AND we clone the objects we modify.
+
+      while (queue.length > 0) {
+        const parentTempId = queue.shift()!;
+
+        if (visited.has(parentTempId)) continue;
+        visited.add(parentTempId);
+
+        const parentIndex = currentTasks.findIndex(
+          (t) => t.tempId === parentTempId,
+        );
+        if (parentIndex === -1) continue;
+
+        const parentTask = currentTasks[parentIndex];
+        const parentStart = getAbsoluteMinutes(
+          parentTask.dayOffset,
+          parentTask.startTime,
+        );
+        const parentEnd = parentStart + (parentTask.duration || 0);
+
+        // Get children using map
+        const childrenIndices = adjacencyMap.get(parentTempId);
+        if (!childrenIndices) continue;
+
+        childrenIndices.forEach((childIndex) => {
+          const childTask = currentTasks[childIndex];
+
+          if (childTask.dependencyType === "NO_RELATION") return;
+
+          const requiredDelay =
+            childTask.dependencyType === "TIME_LAG"
+              ? childTask.dependencyDelay || 0
+              : 0;
+
+          const newStartTotal = parentEnd + requiredDelay;
+
+          const currentChildStart = getAbsoluteMinutes(
+            childTask.dayOffset,
+            childTask.startTime,
+          );
+
+          if (currentChildStart !== newStartTotal) {
+            let { dayOffset, timeStr } = getDayAndTime(newStartTotal);
+
+            if (workingHours && childTask.requiresWorkingHours) {
+              const adjusted = adjustForWorkingHours(
+                dayOffset,
+                timeStr,
+                childTask.duration,
+              );
+              dayOffset = adjusted.dayOffset;
+              timeStr = adjusted.startTime;
+            }
+
+            // Update the task in the array (shallow copy the object)
+            currentTasks[childIndex] = {
+              ...childTask,
+              dayOffset,
+              startTime: timeStr,
+            };
+
+            // Add child to queue to propagate further
+            queue.push(childTask.tempId);
+          }
+        });
+      }
 
       return currentTasks;
     },
