@@ -15,14 +15,18 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { Plus } from "lucide-react";
-import { useId } from "react";
+import { useState, useId } from "react";
 import { useFieldArray, useFormContext } from "react-hook-form";
 
+import {
+  SharedColorPopover,
+  SharedDependencyPopover,
+} from "@/components/simulation/shared-popovers";
 import { TaskRow } from "@/components/simulation/task-row";
 import { Button } from "@/components/ui/button";
 import { useTaskDependencies } from "@/hooks/use-task-dependencies";
 import { cn } from "@/lib/utils";
-import type { MasterTask } from "@/types/simulation";
+import type { MasterTask, TaskItem } from "@/types/simulation";
 
 interface TaskListEditorProps {
   name: string; // Field array name (e.g., "tasks")
@@ -58,6 +62,108 @@ export function TaskListEditor({
   );
 
   const dndContextId = useId();
+
+  // Shared Popover State
+  const [activeColorPopover, setActiveColorPopover] = useState<{
+    tempId: string;
+    anchor: HTMLElement | null;
+  } | null>(null);
+
+  const [activeDepPopover, setActiveDepPopover] = useState<{
+    tempId: string;
+    anchor: HTMLElement | null;
+  } | null>(null);
+
+  const handleOpenColor = (tempId: string, anchor: HTMLElement) => {
+    setActiveColorPopover({ tempId, anchor });
+  };
+
+  const handleOpenDependency = (tempId: string, anchor: HTMLElement) => {
+    setActiveDepPopover({ tempId, anchor });
+  };
+
+  const handleClosePopovers = () => {
+    setActiveColorPopover(null);
+    setActiveDepPopover(null);
+  };
+
+  const activeColorTaskIdx = activeColorPopover
+    ? fields.findIndex((f: any) => f.tempId === activeColorPopover.tempId)
+    : -1;
+  const activeColorTask =
+    activeColorTaskIdx !== -1
+      ? (getValues(`${name}.${activeColorTaskIdx}`) as TaskItem)
+      : null;
+
+  const activeDepTaskIdx = activeDepPopover
+    ? fields.findIndex((f: any) => f.tempId === activeDepPopover.tempId)
+    : -1;
+  const activeDepTask =
+    activeDepTaskIdx !== -1
+      ? (getValues(`${name}.${activeDepTaskIdx}`) as TaskItem)
+      : null;
+
+  const handleColorUpdate = (updates: Partial<TaskItem>) => {
+    if (activeColorTaskIdx === -1) return;
+    const currentTask = getValues(`${name}.${activeColorTaskIdx}`);
+    update(activeColorTaskIdx, { ...currentTask, ...updates });
+  };
+
+  const handleDependencyUpdate = (updates: Partial<TaskItem>) => {
+    if (activeDepTaskIdx === -1) return;
+    const currentTasks = [...getValues(name)];
+    // Update local task first to have latest state for recalculation
+    currentTasks[activeDepTaskIdx] = {
+      ...currentTasks[activeDepTaskIdx],
+      ...updates,
+    };
+
+    // If we changed dependency, we must recalc
+    if (
+      updates.dependsOnTempId !== undefined ||
+      updates.dependencyType !== undefined ||
+      updates.dependencyDelay !== undefined
+    ) {
+      if (currentTasks[activeDepTaskIdx].dependsOnTempId) {
+        const updatedTasks = recalculateDependentTasks(
+          currentTasks[activeDepTaskIdx].dependsOnTempId!,
+          currentTasks,
+        );
+        // We must stick to form array update methods or setValue
+        // But hook form useFieldArray 'replace' works for full list
+        replace(updatedTasks);
+      } else {
+        // If removed dependency, just update list?
+        // Actually recalculateDependentTasks typically handles propagation from the *parent* downwards
+        // But here we are changing the *child's* dependency pointer.
+        // If we change who we depend ON, we might need to update our own start time based on new parent.
+        // Let's assume recalculateDependentTasks handles "given a changed task ID (parent or self?), update everyone"
+        // In TaskRow, it was:
+        // if (newVal) { const updated = recalculateDependentTasks(newVal, currentTasks); setValue(.., updated) }
+        // else { setValue(.., currentTasks) }
+
+        // It seems recalculateDependentTasks takes (tempId: string, tasks: TaskItem[]).
+        // If tempId is the PARENT's id, it updates children.
+        // If we change dependency, we should probably trigger recalc for the NEW parent?
+        // Or if we just changed ourselves, we might need to recalc ourselves?
+
+        // Looking at TaskRow legacy code:
+        // onChange dependsOnTempId -> recalculateDependentTasks(newVal, currentTasks) (newVal is the PARENT ID)
+
+        // So:
+        const parentId = currentTasks[activeDepTaskIdx].dependsOnTempId;
+        if (parentId) {
+          const updated = recalculateDependentTasks(parentId, currentTasks);
+          replace(updated);
+        } else {
+          replace(currentTasks);
+        }
+      }
+    } else {
+      // Just normal update
+      replace(currentTasks);
+    }
+  };
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
@@ -164,6 +270,8 @@ export function TaskListEditor({
                   getValues={getValues}
                   updateTaskOnMove={updateTaskOnMove}
                   recalculateDependentTasks={recalculateDependentTasks}
+                  onOpenColor={handleOpenColor}
+                  onOpenDependency={handleOpenDependency}
                 />
               ))}
             </SortableContext>
@@ -175,6 +283,22 @@ export function TaskListEditor({
           )}
         </div>
       </div>
+      <SharedColorPopover
+        isOpen={!!activeColorPopover}
+        onClose={handleClosePopovers}
+        anchorEl={activeColorPopover?.anchor ?? null}
+        task={activeColorTask}
+        onUpdate={handleColorUpdate}
+      />
+
+      <SharedDependencyPopover
+        isOpen={!!activeDepPopover}
+        onClose={handleClosePopovers}
+        anchorEl={activeDepPopover?.anchor ?? null}
+        task={activeDepTask}
+        allTasks={getValues(name) as TaskItem[]} // Pass current form values
+        onUpdate={handleDependencyUpdate}
+      />
     </div>
   );
 }

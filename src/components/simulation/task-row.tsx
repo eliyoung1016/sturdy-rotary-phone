@@ -1,12 +1,6 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import {
-  Clock,
-  DollarSign,
-  GripVertical,
-  Settings2,
-  Trash2,
-} from "lucide-react";
+import { Clock, DollarSign, GripVertical, Trash2 } from "lucide-react";
 import { useRef, useState } from "react";
 import {
   type UseFieldArrayRemove,
@@ -16,14 +10,8 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ColorSelect } from "@/components/ui/color-select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import {
   Select,
   SelectContent,
@@ -55,6 +43,8 @@ interface TaskRowProps {
     tempId: string,
     currentTasks: TaskItem[],
   ) => TaskItem[];
+  onOpenColor: (tempId: string, anchor: HTMLElement) => void;
+  onOpenDependency: (tempId: string, anchor: HTMLElement) => void;
 }
 
 function SortableTaskItem({
@@ -106,12 +96,11 @@ export function TaskRow({
   getValues,
   updateTaskOnMove,
   recalculateDependentTasks,
+  onOpenColor,
+  onOpenDependency,
 }: TaskRowProps) {
   const { register, setValue, watch } = useFormContext();
   const taskValues = watch(`${controlName}.${index}`) as TaskItem;
-  const [openPopoverId, setOpenPopoverId] = useState<boolean>(false);
-  const [openAttributesPopoverId, setOpenAttributesPopoverId] =
-    useState<boolean>(false);
   const focusValueRef = useRef<string>("");
 
   const getColorValue = (colorName: string | undefined): string => {
@@ -132,17 +121,6 @@ export function TaskRow({
       label += ` (No Rel)`;
     }
     return label;
-  };
-
-  const getDependencyOptions = (currentTempId: string) => {
-    const currentFields = getValues(controlName) as TaskItem[];
-    return currentFields
-      .map((f, idx) => ({
-        label: f.name || `Task ${idx + 1}`,
-        value: f.tempId,
-        index: idx,
-      }))
-      .filter((f) => f.value !== currentTempId);
   };
 
   if (!taskValues) return null;
@@ -391,302 +369,88 @@ export function TaskRow({
 
           {/* Dependency */}
           <div>
-            <Popover
-              open={openPopoverId}
-              onOpenChange={setOpenPopoverId}
-              modal={false}
+            <Button
+              variant="outline"
+              type="button"
+              role="combobox"
+              disabled={readOnly}
+              className={cn(
+                "w-full h-9 text-xs justify-between px-2 font-normal",
+                !taskValues.dependsOnTempId && "text-muted-foreground",
+              )}
+              onClick={(e) =>
+                onOpenDependency(taskValues.tempId, e.currentTarget)
+              }
             >
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  role="combobox"
-                  disabled={readOnly}
-                  className={cn(
-                    "w-full h-9 text-xs justify-between px-2 font-normal",
-                    !taskValues.dependsOnTempId && "text-muted-foreground",
-                  )}
-                >
-                  <span className="truncate">
-                    {getDependencyLabel(taskValues)}
-                  </span>
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent
-                className="w-[300px] p-3"
-                align="start"
-                onPointerDownOutside={(e) => {
-                  if (
-                    e.target instanceof Element &&
-                    (e.target.closest('[role="listbox"]') ||
-                      e.target.closest('[role="option"]'))
-                  ) {
-                    e.preventDefault();
-                  }
-                }}
-              >
-                <div className="space-y-3">
-                  <div className="space-y-1">
-                    <Label className="text-xs">Parent Task</Label>
-                    <Select
-                      value={taskValues.dependsOnTempId || "none"}
-                      onValueChange={(val) => {
-                        const newVal = val === "none" ? undefined : val;
-                        const currentTasks = [...getValues(controlName)];
-
-                        currentTasks[index] = {
-                          ...currentTasks[index],
-                          dependsOnTempId: newVal,
-                          ...(newVal
-                            ? {}
-                            : {
-                                dependencyType: "IMMEDIATE",
-                                dependencyDelay: 0,
-                              }),
-                        };
-
-                        if (newVal) {
-                          const updatedTasks = recalculateDependentTasks(
-                            newVal,
-                            currentTasks,
-                          );
-                          setValue(controlName, updatedTasks);
-                        } else {
-                          setValue(controlName, currentTasks);
-                        }
-                      }}
-                    >
-                      <SelectTrigger className="h-8 text-xs">
-                        <SelectValue placeholder="None" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">None</SelectItem>
-                        {getDependencyOptions(taskValues.tempId).map((opt) => (
-                          <SelectItem key={opt.value} value={opt.value}>
-                            {opt.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div
-                    className={cn(
-                      "space-y-1",
-                      !taskValues.dependsOnTempId && "opacity-50",
-                    )}
-                  >
-                    <Label className="text-xs">Relation Type</Label>
-                    <Select
-                      disabled={!taskValues.dependsOnTempId}
-                      value={taskValues.dependencyType || "IMMEDIATE"}
-                      onValueChange={(val) => {
-                        const currentTasks = [...getValues(controlName)];
-                        currentTasks[index] = {
-                          ...currentTasks[index],
-                          dependencyType: val as any,
-                        };
-
-                        if (taskValues.dependsOnTempId) {
-                          const updatedTasks = recalculateDependentTasks(
-                            taskValues.dependsOnTempId,
-                            currentTasks,
-                          );
-                          setValue(controlName, updatedTasks);
-                        } else {
-                          setValue(controlName, currentTasks);
-                        }
-                      }}
-                    >
-                      <SelectTrigger className="h-8 text-xs">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="IMMEDIATE">
-                          Immediately After
-                        </SelectItem>
-                        <SelectItem value="TIME_LAG">
-                          After Gap (Lag)
-                        </SelectItem>
-                        <SelectItem value="NO_RELATION">
-                          No Time Relation
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {(taskValues.dependencyType === "TIME_LAG" ||
-                    !taskValues.dependencyType) && (
-                    <div
-                      className={cn(
-                        "space-y-1",
-                        !taskValues.dependsOnTempId && "opacity-50",
-                      )}
-                    >
-                      <Label className="text-xs">Lag (minutes)</Label>
-                      <Input
-                        type="number"
-                        disabled={!taskValues.dependsOnTempId}
-                        className="h-8 text-xs"
-                        value={taskValues.dependencyDelay ?? 0}
-                        onChange={(e) => {
-                          const val = Number(e.target.value);
-                          const currentTasks = [...getValues(controlName)];
-                          currentTasks[index] = {
-                            ...currentTasks[index],
-                            dependencyDelay: val,
-                          };
-
-                          if (taskValues.dependsOnTempId) {
-                            const updatedTasks = recalculateDependentTasks(
-                              taskValues.dependsOnTempId,
-                              currentTasks,
-                            );
-                            setValue(controlName, updatedTasks);
-                          } else {
-                            setValue(controlName, currentTasks);
-                          }
-                        }}
-                      />
-                    </div>
-                  )}
-                </div>
-                <div className="mt-3 pt-2 flex justify-end">
-                  <Button
-                    size="sm"
-                    className="h-7 text-xs"
-                    onClick={() => setOpenPopoverId(false)}
-                  >
-                    Done
-                  </Button>
-                </div>
-              </PopoverContent>
-            </Popover>
+              <span className="truncate">{getDependencyLabel(taskValues)}</span>
+            </Button>
           </div>
 
           {/* Indicators + Attributes */}
           <div className="flex items-center justify-end gap-1">
+            {/* Color Trigger */}
             <div
-              className="w-3 h-3 rounded-full border border-gray-200"
+              className="w-4 h-4 rounded-full border border-gray-200 cursor-pointer hover:ring-2 hover:ring-offset-1 hover:ring-primary/50 transition-all"
               style={{
                 background: getColorValue(taskValues.color),
               }}
               title={`Color: ${taskValues.color || "primary"}`}
+              onClick={(e) => onOpenColor(taskValues.tempId, e.currentTarget)}
             />
-            {taskValues.isCashConfirmed && (
-              <div title="Cash Confirmed">
-                <DollarSign className="h-3 w-3 text-green-600" />
-              </div>
-            )}
-            {taskValues.requiresWorkingHours && (
-              <div title="Requires Working Hours">
-                <Clock className="h-3 w-3 text-blue-600" />
-              </div>
-            )}
 
-            <Popover
-              open={openAttributesPopoverId}
-              onOpenChange={setOpenAttributesPopoverId}
-              modal={false}
+            {/* Cash Toggle */}
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className={cn(
+                "h-6 w-6 rounded-full",
+                taskValues.isCashConfirmed
+                  ? "text-green-600 bg-green-50 hover:bg-green-100"
+                  : "text-muted-foreground hover:bg-muted",
+              )}
+              title="Toggle Cash Confirmed"
+              disabled={readOnly}
+              onClick={() => {
+                const currentTasks = getValues(controlName);
+                const updatedTask = {
+                  ...currentTasks[index],
+                  isCashConfirmed: !taskValues.isCashConfirmed,
+                };
+                update(index, updatedTask);
+                // Sync direct value
+                currentTasks[index] = updatedTask;
+              }}
             >
-              <PopoverTrigger asChild>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7 text-muted-foreground ml-1"
-                  title="Edit Attributes"
-                  disabled={readOnly}
-                >
-                  <Settings2 className="h-4 w-4" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent
-                className="w-[280px] p-4"
-                align="end"
-                onPointerDownOutside={(e) => {
-                  if (
-                    e.target instanceof Element &&
-                    (e.target.closest('[role="listbox"]') ||
-                      e.target.closest('[role="option"]'))
-                  ) {
-                    e.preventDefault();
-                  }
-                }}
-              >
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label className="text-xs">Color</Label>
-                    <ColorSelect
-                      value={taskValues.color}
-                      onValueChange={(val) => {
-                        const currentTasks = getValues(controlName);
-                        // We use index access for simplicity, ideally we use update
-                        const updatedTask = {
-                          ...currentTasks[index],
-                          color: val,
-                        };
-                        update(index, updatedTask);
-                        // Also update form value directly to ensure sync if mix-and-matching
-                        currentTasks[index] = updatedTask;
-                      }}
-                    />
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Checkbox
-                      id={`isCashConfirmed-${id}`}
-                      className="h-4 w-4"
-                      checked={!!taskValues.isCashConfirmed}
-                      onCheckedChange={(checked) => {
-                        const currentTasks = getValues(controlName);
-                        const updatedTask = {
-                          ...currentTasks[index],
-                          isCashConfirmed: !!checked,
-                        };
-                        update(index, updatedTask);
-                        currentTasks[index] = updatedTask;
-                      }}
-                    />
-                    <Label
-                      htmlFor={`isCashConfirmed-${id}`}
-                      className="cursor-pointer text-xs"
-                    >
-                      Is Cash Confirmed?
-                    </Label>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Checkbox
-                      id={`requiresWorkingHours-${id}`}
-                      className="h-4 w-4"
-                      checked={!!taskValues.requiresWorkingHours}
-                      onCheckedChange={(checked) => {
-                        const currentTasks = getValues(controlName);
-                        const updatedTask = {
-                          ...currentTasks[index],
-                          requiresWorkingHours: !!checked,
-                        };
-                        update(index, updatedTask);
-                        currentTasks[index] = updatedTask;
-                      }}
-                    />
-                    <Label
-                      htmlFor={`requiresWorkingHours-${id}`}
-                      className="cursor-pointer text-xs"
-                    >
-                      Requires Working Hours
-                    </Label>
-                  </div>
+              <DollarSign className="h-3.5 w-3.5" />
+            </Button>
 
-                  <div className="flex justify-end pt-2">
-                    <Button
-                      size="sm"
-                      onClick={() => setOpenAttributesPopoverId(false)}
-                    >
-                      Done
-                    </Button>
-                  </div>
-                </div>
-              </PopoverContent>
-            </Popover>
+            {/* Working Hours Toggle */}
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className={cn(
+                "h-6 w-6 rounded-full",
+                taskValues.requiresWorkingHours
+                  ? "text-blue-600 bg-blue-50 hover:bg-blue-100"
+                  : "text-muted-foreground hover:bg-muted",
+              )}
+              title="Toggle Working Hours"
+              disabled={readOnly}
+              onClick={() => {
+                const currentTasks = getValues(controlName);
+                const updatedTask = {
+                  ...currentTasks[index],
+                  requiresWorkingHours: !taskValues.requiresWorkingHours,
+                };
+                update(index, updatedTask);
+                // Sync direct value
+                currentTasks[index] = updatedTask;
+              }}
+            >
+              <Clock className="h-3.5 w-3.5" />
+            </Button>
           </div>
 
           {/* Remove */}
