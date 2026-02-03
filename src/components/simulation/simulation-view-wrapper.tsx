@@ -5,21 +5,8 @@ import { useMemo, useState } from "react";
 import { updateSimulation } from "@/app/actions/simulation";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import type { TaskItem } from "@/types/simulation";
 import { SimulationView } from "./simulation-view";
-
-interface Task {
-  tempId: string;
-  name: string;
-  dayOffset: number;
-  startTime: string;
-  duration: number;
-  type?: "PROCESS" | "CUTOFF";
-  color?: string;
-  sequenceOrder: number;
-  dependsOnId?: number | null;
-  isCashConfirmed?: boolean;
-  requiresWorkingHours?: boolean;
-}
 
 interface SimulationViewWrapperProps {
   simulation: any;
@@ -50,8 +37,8 @@ export function SimulationViewWrapper({
   }, [simulation.targetStateJson]);
 
   const handleSave = async (
-    currentTasks: Task[],
-    targetTasks: Task[],
+    currentTasks: TaskItem[],
+    targetTasks: TaskItem[],
     metrics?: { reinvestmentGainHours?: number; idleTimeSavedMinutes?: number },
   ) => {
     setIsSaving(true);

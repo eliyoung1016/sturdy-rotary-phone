@@ -10,67 +10,32 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { useDebounce } from "@/hooks/use-debounce";
 import { useTaskDependencies } from "@/hooks/use-task-dependencies";
+import type {
+  MasterTask,
+  SimulationFundProfile,
+  TaskItem,
+} from "@/types/simulation";
 import { GanttChart } from "./gantt-chart";
 
-interface Task {
-  tempId: string;
-  name: string;
-  dayOffset: number;
-  startTime: string; // "HH:mm"
-  duration: number; // minutes
-  type?: "PROCESS" | "CUTOFF";
-  color?: string;
-  sequenceOrder: number;
-  dependsOnTempId?: string | null;
-  taskId?: number;
-  saveToMaster?: boolean;
-  isCashConfirmed?: boolean;
-  requiresWorkingHours?: boolean;
-}
-
-interface Template {
-  id: number;
-  name: string;
-  templateTasks: any[];
-}
-
-interface FundProfile {
-  id: number;
-  name: string;
-  officeStart?: string;
-  officeEnd?: string;
-  currentTemplate?: Template | null;
-  targetTemplate?: Template | null;
-}
-
 interface SimulationViewProps {
-  fund: FundProfile;
+  fund: SimulationFundProfile;
   simulationId?: number;
   onSave?: (
-    currentTasks: Task[],
-    targetTasks: Task[],
+    currentTasks: TaskItem[],
+    targetTasks: TaskItem[],
     metrics?: { reinvestmentGainHours?: number; idleTimeSavedMinutes?: number },
   ) => void;
-  initialCurrentTasks?: Task[] | null;
-  initialTargetTasks?: Task[] | null;
+  initialCurrentTasks?: TaskItem[] | null;
+  initialTargetTasks?: TaskItem[] | null;
   isSaving?: boolean;
   masterTasks?: MasterTask[];
 }
 
 interface SimulationFormState {
-  currentTasks: Task[];
-  targetTasks: Task[];
-}
-
-interface MasterTask {
-  id: number;
-  name: string;
-  duration: number;
-  type: "PROCESS" | "CUTOFF";
-  color: string;
-  isCashConfirmed: boolean;
-  requiresWorkingHours: boolean;
+  currentTasks: TaskItem[];
+  targetTasks: TaskItem[];
 }
 
 export function SimulationView({
@@ -85,7 +50,7 @@ export function SimulationView({
   const [mode, setMode] = useState<"current" | "target">("current");
 
   // Transform initial data to internal state
-  const mapTasks = useCallback((tasks: any[]): Task[] => {
+  const mapTasks = useCallback((tasks: any[]): TaskItem[] => {
     if (!tasks) return [];
     return tasks.map((t) => ({
       tempId: t.tempId || t.id?.toString() || crypto.randomUUID(),
@@ -97,10 +62,13 @@ export function SimulationView({
       color: t.color,
       sequenceOrder: t.sequenceOrder || 0,
       dependsOnTempId: t.dependsOnTempId || t.dependsOnId?.toString() || null,
+      dependsOnId: t.dependsOnId,
       taskId: t.taskId,
       saveToMaster: false,
       isCashConfirmed: t.isCashConfirmed,
       requiresWorkingHours: t.requiresWorkingHours,
+      dependencyType: t.dependencyType,
+      dependencyDelay: t.dependencyDelay,
     }));
   }, []);
 
@@ -134,8 +102,7 @@ export function SimulationView({
     [fund.officeStart, fund.officeEnd],
   );
 
-  const { adjustForWorkingHours, getAbsoluteMinutes, getDayAndTime } =
-    useTaskDependencies(workingHours);
+  const { updateTaskOnMove } = useTaskDependencies(workingHours);
 
   // Watch tasks for Gantt Chart
   const currentTasks = useWatch({
@@ -147,10 +114,8 @@ export function SimulationView({
   const activeTasksFieldName =
     mode === "current" ? "currentTasks" : "targetTasks";
 
-  // Custom update function for Gantt Chart dragging
-  // This needs to update the form state, but respecting dependencies and working hours
-  // The hook provides helper functions, but we must initiate the update via form.setValue / update
-  // Since we are not inside TaskListEditor's useFieldArray here, we manipulate the array and setValue.
+  // Debounce the tasks for the Gantt Chart to avoid lag
+  const debouncedActiveTasks = useDebounce(activeTasks, 200);
 
   const handleTaskUpdate = (
     tempId: string,
@@ -162,89 +127,27 @@ export function SimulationView({
     const taskIndex = tasks.findIndex((t) => t.tempId === tempId);
     if (taskIndex === -1) return;
 
-    // Apply working hours adjustment first
-    // Only if the task requires working hours
-    let adjustedDay = newDayOffset;
-    let adjustedTime = newStartTime;
+    // Use shared logic for update, which handles recursion, working hours, and constraints
+    // Note: updating duration is same as "moving" if we only change duration property first?
+    // updateTaskOnMove takes (index, day, time, list).
+    // If duration changed, we should probably update it in the list first, then call updateTaskOnMove?
+    // Actually updateTaskOnMove logic in hook only looks at duration for working hours calculation of self
+    // and subsequent children.
 
-    const taskOfInterest = tasks.find((t) => t.tempId === tempId);
-
-    if (taskOfInterest?.requiresWorkingHours) {
-      const adjusted = adjustForWorkingHours(
-        newDayOffset,
-        newStartTime,
-        newDuration,
-      );
-      adjustedDay = adjusted.dayOffset;
-      adjustedTime = adjusted.startTime;
-    }
-
-    // Update the task itself
-    const oldTask = tasks[taskIndex];
-    const oldStart = getAbsoluteMinutes(oldTask.dayOffset, oldTask.startTime);
-    const newStart = getAbsoluteMinutes(adjustedDay, adjustedTime);
-
+    // If duration changed, we must update it first.
     tasks[taskIndex] = {
-      ...oldTask,
-      dayOffset: adjustedDay,
-      startTime: adjustedTime,
+      ...tasks[taskIndex],
       duration: newDuration,
     };
 
-    // Calculate delta and propagate
-    const delta = newStart - oldStart;
+    const updatedTasks = updateTaskOnMove(
+      taskIndex,
+      newDayOffset,
+      newStartTime,
+      tasks,
+    );
 
-    // We can use the hook logic if we adapt it.
-    // updateDependentTasks expects UseFieldArrayUpdate, but we can mock it or use setValue
-    // Actually, `updateDependentTasks` in the hook is designed for `useFieldArray`.
-    // We can rewrite a simpler version here that works on the array directly since we will just setValue the whole array at end.
-
-    // Update dependencies recursively on the local arrayCopy
-    const updateDeps = (parentId: string, timeDiff: number) => {
-      const dependentIndices = tasks
-        .map((t, i) => (t.dependsOnTempId === parentId ? i : -1))
-        .filter((i) => i !== -1);
-
-      dependentIndices.forEach((idx) => {
-        const depTask = tasks[idx];
-        const currentStart = getAbsoluteMinutes(
-          depTask.dayOffset,
-          depTask.startTime,
-        );
-        const newStartTotal = currentStart + timeDiff;
-        let { dayOffset, timeStr } = getDayAndTime(newStartTotal);
-
-        if (depTask.requiresWorkingHours) {
-          const adj = adjustForWorkingHours(
-            dayOffset,
-            timeStr,
-            depTask.duration,
-          );
-          dayOffset = adj.dayOffset;
-          timeStr = adj.startTime;
-        }
-
-        tasks[idx] = {
-          ...depTask,
-          dayOffset,
-          startTime: timeStr,
-        };
-
-        // Recalculate delta for next children in case it clamped/shifted differently
-        const actualNewStart = getAbsoluteMinutes(dayOffset, timeStr);
-        const childDelta = actualNewStart - currentStart;
-
-        if (childDelta !== 0) {
-          updateDeps(depTask.tempId, childDelta);
-        }
-      });
-    };
-
-    if (delta !== 0) {
-      updateDeps(tempId, delta);
-    }
-
-    form.setValue(activeTasksFieldName, tasks);
+    form.setValue(activeTasksFieldName, updatedTasks);
   };
 
   return (
@@ -330,7 +233,7 @@ export function SimulationView({
               </CardHeader>
               <CardContent>
                 <GanttChart
-                  tasks={activeTasks}
+                  tasks={debouncedActiveTasks || []}
                   onTaskUpdate={handleTaskUpdate}
                   officeStart={fund.officeStart}
                   officeEnd={fund.officeEnd}

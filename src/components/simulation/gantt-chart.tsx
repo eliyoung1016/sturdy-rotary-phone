@@ -13,17 +13,10 @@ interface DragLabelState {
   time: string;
 }
 
-interface Task {
-  tempId: string;
-  name: string;
-  dayOffset: number;
-  startTime: string; // "HH:mm"
-  duration: number; // minutes
-  color?: string;
-}
+import type { TaskItem } from "@/types/simulation";
 
 interface GanttChartProps {
-  tasks: Task[];
+  tasks: TaskItem[];
   onTaskUpdate: (
     tempId: string,
     newDayOffset: number,
@@ -203,7 +196,7 @@ const GanttTaskBar = memo(
     minutesToPercent,
     minutesToPercentWidth,
   }: {
-    task: Task;
+    task: TaskItem;
     readOnly: boolean;
     minMinutes: number;
     totalMinutes: number;

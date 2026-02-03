@@ -1,23 +1,5 @@
 import { useCallback } from "react";
-
-export interface TaskItem {
-  tempId: string;
-  dayOffset: number;
-  startTime: string; // "HH:mm"
-  duration: number; // minutes
-  // Optional working hours adjustment
-  dependsOnTempId?: string | null | undefined;
-  dependencyType?: "IMMEDIATE" | "TIME_LAG" | "NO_RELATION";
-  dependencyDelay?: number;
-  requiresWorkingHours?: boolean;
-  // Others
-  [key: string]: any;
-}
-
-interface WorkingHours {
-  start: string;
-  end: string;
-}
+import type { TaskItem, WorkingHours } from "@/types/simulation";
 
 export function useTaskDependencies(workingHours?: WorkingHours) {
   const timeToMinutes = useCallback((timeStr: string): number => {
@@ -181,7 +163,7 @@ export function useTaskDependencies(workingHours?: WorkingHours) {
       const newStartTotal = getAbsoluteMinutes(newDayOffset, newStartTime);
 
       // 1. Check parent constraint
-      const parentId = task.dependsOnTempId || (task as any).dependsOnId;
+      const parentId = task.dependsOnTempId || task.taskId?.toString();
       if (parentId) {
         const parentTask = currentTasks.find((t) => t.tempId === parentId);
         if (parentTask) {
@@ -269,7 +251,7 @@ export function useTaskDependencies(workingHours?: WorkingHours) {
       changedTaskTempId: string,
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       _timeDelta: number,
-      currentTasks: any[],
+      currentTasks: TaskItem[],
     ) => {
       // Ignore delta, perform full path recalculation
       return recalculateDependentTasks(changedTaskTempId, currentTasks);
