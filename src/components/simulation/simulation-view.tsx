@@ -2,10 +2,9 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { Loader2, Save } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { FormProvider, useForm, useWatch } from "react-hook-form";
 
-import { getMasterTasks } from "@/app/actions/master-task";
 import { TaskListEditor } from "@/components/shared/task-list-editor";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -56,6 +55,7 @@ interface SimulationViewProps {
   initialCurrentTasks?: Task[] | null;
   initialTargetTasks?: Task[] | null;
   isSaving?: boolean;
+  masterTasks?: MasterTask[];
 }
 
 interface SimulationFormState {
@@ -80,12 +80,12 @@ export function SimulationView({
   initialCurrentTasks,
   initialTargetTasks,
   isSaving = false,
+  masterTasks = [],
 }: SimulationViewProps) {
   const [mode, setMode] = useState<"current" | "target">("current");
-  const [masterTasks, setMasterTasks] = useState<MasterTask[]>([]);
 
   // Transform initial data to internal state
-  const mapTasks = (tasks: any[]): Task[] => {
+  const mapTasks = useCallback((tasks: any[]): Task[] => {
     if (!tasks) return [];
     return tasks.map((t) => ({
       tempId: t.tempId || t.id?.toString() || crypto.randomUUID(),
@@ -102,7 +102,7 @@ export function SimulationView({
       isCashConfirmed: t.isCashConfirmed,
       requiresWorkingHours: t.requiresWorkingHours,
     }));
-  };
+  }, []);
 
   const form = useForm<SimulationFormState>({
     defaultValues: {
@@ -115,16 +115,6 @@ export function SimulationView({
     },
   });
 
-  useEffect(() => {
-    async function fetchMasterTasks() {
-      const res = await getMasterTasks();
-      if (res.success && res.data) {
-        setMasterTasks(res.data as unknown as MasterTask[]);
-      }
-    }
-    fetchMasterTasks();
-  }, []);
-
   // Re-sync if fund prop changes
   useEffect(() => {
     if (!simulationId) {
@@ -134,7 +124,7 @@ export function SimulationView({
       });
       setMode("current");
     }
-  }, [fund.id, simulationId, form]);
+  }, [simulationId, form, mapTasks, fund.currentTemplate, fund.targetTemplate]);
 
   const workingHours = useMemo(
     () => ({
@@ -144,12 +134,8 @@ export function SimulationView({
     [fund.officeStart, fund.officeEnd],
   );
 
-  const {
-    adjustForWorkingHours,
-    getAbsoluteMinutes,
-    getDayAndTime,
-    updateDependentTasks,
-  } = useTaskDependencies(workingHours);
+  const { adjustForWorkingHours, getAbsoluteMinutes, getDayAndTime } =
+    useTaskDependencies(workingHours);
 
   // Watch tasks for Gantt Chart
   const currentTasks = useWatch({

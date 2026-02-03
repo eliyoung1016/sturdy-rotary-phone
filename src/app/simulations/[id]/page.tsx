@@ -2,6 +2,7 @@ import { AlertCircle, ArrowLeft, BarChart3 } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { getMasterTasks } from "@/app/actions/master-task";
 import { getSimulationById } from "@/app/actions/simulation";
 import { SimulationViewWrapper } from "@/components/simulation/simulation-view-wrapper";
 import { Button } from "@/components/ui/button";
@@ -16,24 +17,30 @@ export default async function SimulationDetailPage(
   const params = await props.params;
   const simulationId = parseInt(params.id);
 
-  if (isNaN(simulationId)) {
+  if (Number.isNaN(simulationId)) {
     notFound();
   }
 
-  const result = await getSimulationById(simulationId);
+  const [simulationResult, masterTasksResult] = await Promise.all([
+    getSimulationById(simulationId),
+    getMasterTasks(),
+  ]);
 
-  if ("error" in result) {
+  if ("error" in simulationResult) {
     return (
       <div className="container mx-auto py-10">
         <div className="p-4 bg-red-50 text-red-600 border border-red-200 rounded flex items-center gap-2">
           <AlertCircle className="h-5 w-5" />
-          {result.error}
+          {simulationResult.error}
         </div>
       </div>
     );
   }
 
-  const simulation = result.data;
+  const simulation = simulationResult.data;
+  const masterTasks = masterTasksResult.success
+    ? (masterTasksResult.data ?? [])
+    : [];
 
   // Check if simulation has been saved with data
   const hasComparisonData =
@@ -69,7 +76,10 @@ export default async function SimulationDetailPage(
         )}
       </div>
 
-      <SimulationViewWrapper simulation={simulation} />
+      <SimulationViewWrapper
+        simulation={simulation}
+        masterTasks={masterTasks}
+      />
     </div>
   );
 }

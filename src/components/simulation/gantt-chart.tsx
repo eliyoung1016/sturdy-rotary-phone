@@ -33,10 +33,13 @@ interface GanttChartProps {
   readOnly?: boolean;
   officeStart?: string; // "HH:mm" format
   officeEnd?: string; // "HH:mm" format
+  overrideMinMinutes?: number;
+  overrideMaxMinutes?: number;
 }
 
 const HOUR_WIDTH = 40; // px
 const DAY_WIDTH = HOUR_WIDTH * 24;
+
 const START_HOUR = 0; // 00:00
 const HOURS_PER_DAY = 24;
 
@@ -438,6 +441,8 @@ export function GanttChart({
   readOnly = false,
   officeStart = "09:00",
   officeEnd = "17:00",
+  overrideMinMinutes,
+  overrideMaxMinutes,
 }: GanttChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartContentRef = useRef<HTMLDivElement>(null);
@@ -458,6 +463,15 @@ export function GanttChart({
   );
 
   const { minMinutes, maxMinutes, sortedTasks } = useMemo(() => {
+    // If overrides are provided, use them directly
+    if (overrideMinMinutes !== undefined && overrideMaxMinutes !== undefined) {
+      return {
+        minMinutes: overrideMinMinutes,
+        maxMinutes: overrideMaxMinutes,
+        sortedTasks: tasks,
+      };
+    }
+
     let min = Infinity;
     let max = -Infinity;
 
@@ -473,7 +487,7 @@ export function GanttChart({
       max = 24 * 60; // Default 1 day
     }
 
-    // Add some padding
+    // Add some padding if calculating automatically
     min -= 120; // 2 hours padding
     max += 120; // 2 hours padding
 
@@ -486,7 +500,7 @@ export function GanttChart({
       maxMinutes: endDay * 24 * 60,
       sortedTasks: tasks,
     };
-  }, [tasks, getAbsoluteMinutes]);
+  }, [tasks, getAbsoluteMinutes, overrideMinMinutes, overrideMaxMinutes]);
 
   const totalMinutes = maxMinutes - minMinutes;
   const totalDays = Math.ceil(totalMinutes / (24 * 60));

@@ -1,9 +1,12 @@
 "use client";
 
-import { Calendar, Clock, TrendingDown } from "lucide-react";
+import { Clock, DollarSign, TrendingDown } from "lucide-react";
 import { useMemo } from "react";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { ComparisonSummary } from "@/components/simulation/comparison-summary";
+import { TASK_COLORS } from "@/lib/constants/colors";
+import { cn } from "@/lib/utils";
 
 interface Task {
   tempId?: string;
@@ -14,6 +17,8 @@ interface Task {
   duration: number;
   type?: "PROCESS" | "CUTOFF";
   color?: string;
+  isCashConfirmed?: boolean;
+  requiresWorkingHours?: boolean;
 }
 
 interface VerticalTimelineComparisonProps {
@@ -24,405 +29,274 @@ interface VerticalTimelineComparisonProps {
   officeEnd?: string;
 }
 
-interface TimelineEvent {
-  time: Date;
-  label: string;
-  task: Task;
-  practice: "current" | "target";
-  isStart: boolean;
+interface ComparisonMetrics {
+  currentTotalMinutes: number;
+  targetTotalMinutes: number;
+  timeSavedMinutes: number;
+  timeSavedHours: number;
+  percentageSaved: number;
+}
+
+interface DayGroup {
+  dayOffset: number;
+  timeSlots: TimeSlot[];
+}
+
+interface TimeSlot {
+  timeStr: string; // "HH:MM"
+  date: Date;
+  currentTasks: Task[];
+  targetTasks: Task[];
 }
 
 export function VerticalTimelineComparison({
   currentTasks,
   targetTasks,
   fundName,
-  officeStart = "09:00",
-  officeEnd = "18:00",
 }: VerticalTimelineComparisonProps) {
-  const timelineData = useMemo(() => {
-    const events: TimelineEvent[] = [];
-    const baseDate = new Date(2026, 0, 1); // January 1, 2026 as baseline
-
-    const parseTime = (timeStr: string) => {
-      const [hours, minutes] = timeStr.split(":").map(Number);
-      return { hours, minutes };
+  // 1. Calculate Metrics
+  const metrics: ComparisonMetrics = useMemo(() => {
+    const calcDuration = (tasks: Task[]) => {
+      if (!tasks.length) return 0;
+      // Simple approximation: sum durations.
+      // Ideally we'd find min start and max end, but strictly summing durations
+      // is often what users want to see "active work time" vs "span".
+      // Let's stick to span (max end - min start) as in previous logic for "Total workflow duration"
+      const times = tasks.map((t) => {
+        const [h, m] = t.startTime.split(":").map(Number);
+        const start = t.dayOffset * 24 * 60 + h * 60 + m;
+        return { start, end: start + t.duration };
+      });
+      const minStart = Math.min(...times.map((t) => t.start));
+      const maxEnd = Math.max(...times.map((t) => t.end));
+      return maxEnd - minStart;
     };
 
-    const addTaskEvents = (tasks: Task[], practice: "current" | "target") => {
-      tasks.forEach((task) => {
-        const { hours, minutes } = parseTime(task.startTime);
-        const startDate = new Date(baseDate);
-        startDate.setDate(baseDate.getDate() + task.dayOffset);
-        startDate.setHours(hours, minutes, 0, 0);
+    const currentTotalMinutes = calcDuration(currentTasks);
+    const targetTotalMinutes = calcDuration(targetTasks);
+    // ... other metrics not needed for render anymore, but needed for component logic if used elsewhere.
+    // Actually, we process metrics here. Let's just calculate raw values used by the new component.
 
-        const endDate = new Date(startDate);
-        endDate.setMinutes(endDate.getMinutes() + task.duration);
-
-        events.push({
-          time: startDate,
-          label: `${task.name} (Start)`,
-          task,
-          practice,
-          isStart: true,
-        });
-
-        events.push({
-          time: endDate,
-          label: `${task.name} (End)`,
-          task,
-          practice,
-          isStart: false,
-        });
-      });
-    };
-
-    addTaskEvents(currentTasks, "current");
-    addTaskEvents(targetTasks, "target");
-
-    // Sort by time
-    events.sort((a, b) => a.time.getTime() - b.time.getTime());
-
-    return events;
-  }, [currentTasks, targetTasks]);
-
-  const metrics = useMemo(() => {
-    const calculateTotalTime = (tasks: Task[]) => {
-      if (tasks.length === 0) return 0;
-
-      const parseTime = (timeStr: string) => {
-        const [hours, minutes] = timeStr.split(":").map(Number);
-        return { hours, minutes };
-      };
-
-      const baseDate = new Date(2026, 0, 1);
-
-      const startValidParams = tasks.map((task) => {
-        const { hours, minutes } = parseTime(task.startTime);
-        const startDate = new Date(baseDate);
-        startDate.setDate(baseDate.getDate() + task.dayOffset);
-        startDate.setHours(hours, minutes, 0, 0);
-        return startDate.getTime();
-      });
-
-      const endValidParams = tasks.map((task) => {
-        const { hours, minutes } = parseTime(task.startTime);
-        const startDate = new Date(baseDate);
-        startDate.setDate(baseDate.getDate() + task.dayOffset);
-        startDate.setHours(hours, minutes, 0, 0);
-
-        const endDate = new Date(startDate);
-        endDate.setMinutes(endDate.getMinutes() + task.duration);
-        return endDate.getTime();
-      });
-
-      if (startValidParams.length === 0) return 0;
-
-      const minStart = Math.min(...startValidParams);
-      const maxEnd = Math.max(...endValidParams);
-
-      return (maxEnd - minStart) / (1000 * 60); // minutes
-    };
-
-    const currentTotalMinutes = calculateTotalTime(currentTasks);
-    const targetTotalMinutes = calculateTotalTime(targetTasks);
-    const timeSavedMinutes = currentTotalMinutes - targetTotalMinutes;
-    const timeSavedHours = Math.round((timeSavedMinutes / 60) * 10) / 10;
-
-    const currentTasksTotal = currentTasks.reduce(
-      (sum, t) => sum + t.duration,
-      0,
-    );
-    const targetTasksTotal = targetTasks.reduce(
-      (sum, t) => sum + t.duration,
-      0,
-    );
-    const taskDurationSaved = currentTasksTotal - targetTasksTotal;
-
+    // We can simplify this hook to just calculate the two totals.
     return {
       currentTotalMinutes,
       targetTotalMinutes,
-      timeSavedMinutes,
-      timeSavedHours,
-      currentTasksTotal,
-      targetTasksTotal,
-      taskDurationSaved,
-      percentageSaved:
-        currentTotalMinutes > 0
-          ? Math.round((timeSavedMinutes / currentTotalMinutes) * 100)
-          : 0,
+      timeSavedMinutes: currentTotalMinutes - targetTotalMinutes,
+      timeSavedHours: 0, // Ignored by new component
+      percentageSaved: 0, // Ignored by new component
     };
   }, [currentTasks, targetTasks]);
 
-  const formatTime = (date: Date) => {
-    return date.toLocaleTimeString("en-US", {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
+  // 2. Prepare Data Structure for Center Spine Layout
+  const timelineData = useMemo(() => {
+    // Collect all unique day offsets
+    const allDays = new Set<number>();
+    [...currentTasks, ...targetTasks].forEach((t) => allDays.add(t.dayOffset));
+    const sortedDays = Array.from(allDays).sort((a, b) => a - b);
+
+    const groups: DayGroup[] = sortedDays.map((dayOffset) => {
+      // Find all unique start times for this day
+      const timesSet = new Set<string>();
+      [...currentTasks, ...targetTasks]
+        .filter((t) => t.dayOffset === dayOffset)
+        .forEach((t) => timesSet.add(t.startTime));
+
+      const sortedTimes = Array.from(timesSet).sort();
+
+      const timeSlots: TimeSlot[] = sortedTimes.map((timeStr) => {
+        // Create a date object just for parsing convenience if needed, or just use string
+        const [h, m] = timeStr.split(":").map(Number);
+        const date = new Date(2026, 0, 1);
+        date.setHours(h, m, 0, 0);
+
+        return {
+          timeStr,
+          date,
+          currentTasks: currentTasks.filter(
+            (t) => t.dayOffset === dayOffset && t.startTime === timeStr,
+          ),
+          targetTasks: targetTasks.filter(
+            (t) => t.dayOffset === dayOffset && t.startTime === timeStr,
+          ),
+        };
+      });
+
+      return { dayOffset, timeSlots };
     });
+
+    return groups;
+  }, [currentTasks, targetTasks]);
+
+  const getDayLabel = (offset: number) => {
+    if (offset === 0) return "Day 0 (D-Day)";
+    if (offset > 0) return `Day +${offset}`;
+    return `Day ${offset}`;
   };
-
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-    });
-  };
-
-  const getDayLabel = (dayOffset: number) => {
-    if (dayOffset === 0) return "Day 0 (D-Day)";
-    if (dayOffset < 0) return `Day ${dayOffset} (D${dayOffset})`;
-    return `Day +${dayOffset} (D+${dayOffset})`;
-  };
-
-  // Group events by day
-  const eventsByDay = useMemo(() => {
-    const grouped = new Map<
-      number,
-      { current: TimelineEvent[]; target: TimelineEvent[] }
-    >();
-
-    timelineData.forEach((event) => {
-      const dayOffset = event.task.dayOffset;
-      if (!grouped.has(dayOffset)) {
-        grouped.set(dayOffset, { current: [], target: [] });
-      }
-      grouped.get(dayOffset)![event.practice].push(event);
-    });
-
-    return Array.from(grouped.entries()).sort((a, b) => a[0] - b[0]);
-  }, [timelineData]);
 
   return (
-    <div className="space-y-6">
-      {/* Header with Fund Name */}
-      <div className="text-center">
-        <h2 className="text-3xl font-bold">{fundName}</h2>
-        <p className="text-muted-foreground">Comparison Timeline</p>
+    <div className="space-y-8 max-w-5xl mx-auto">
+      {/* Header & Metrics */}
+      <div className="space-y-6">
+        <div className="text-center space-y-2">
+          <Badge variant="outline" className="text-muted-foreground mb-2">
+            Comparison Mode
+          </Badge>
+          <h2 className="text-3xl font-bold tracking-tight">{fundName}</h2>
+          <p className="text-muted-foreground"> Current vs. Target Process</p>
+        </div>
+
+        {/* Unified Summary Component */}
+        <ComparisonSummary
+          currentTotalMinutes={metrics.currentTotalMinutes}
+          targetTotalMinutes={metrics.targetTotalMinutes}
+        />
       </div>
+      {/* Center Spine Timeline */}
+      <div className="relative">
+        <div className="absolute left-1/2 top-0 bottom-0 w-px bg-border -translate-x-1/2 hidden md:block" />
 
-      {/* Metrics Summary */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <Clock className="h-4 w-4" />
+        {/* Column Headers */}
+        <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-4 md:gap-8 mb-8 sticky top-0 bg-background z-20 py-4 border-b">
+          <div className="hidden md:flex justify-end px-4 items-center gap-2">
+            <h3 className="text-lg font-semibold text-blue-700">
               Current Practice
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {Math.round((metrics.currentTotalMinutes / 60) * 10) / 10}h
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Total workflow duration
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <Clock className="h-4 w-4" />
+            </h3>
+          </div>
+          <div className="w-16 md:w-auto" /> {/* Spacer for spine */}
+          <div className="hidden md:flex justify-start px-4 items-center gap-2">
+            <h3 className="text-lg font-semibold text-green-700">
               Target Practice
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {Math.round((metrics.targetTotalMinutes / 60) * 10) / 10}h
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Total workflow duration
-            </p>
-          </CardContent>
-        </Card>
+            </h3>
+          </div>
+        </div>
 
-        <Card className="border-green-500 bg-green-50">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium flex items-center gap-2 text-green-700">
-              <TrendingDown className="h-4 w-4" />
-              Time Saved
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-700">
-              {metrics.timeSavedHours}h
-            </div>
-            <p className="text-xs text-green-600">
-              {metrics.percentageSaved}% improvement
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+        <div className="space-y-12">
+          {timelineData.map((day) => (
+            <div key={day.dayOffset} className="space-y-6">
+              {/* Day Header */}
+              <div className="flex justify-center relative z-10">
+                <Badge
+                  variant="secondary"
+                  className="px-4 py-1 text-sm font-semibold bg-background border shadow-sm"
+                >
+                  {getDayLabel(day.dayOffset)}
+                </Badge>
+              </div>
 
-      {/* Vertical Timeline - Side by Side */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Current Practice Column */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Calendar className="h-5 w-5" />
-              Current Practice
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="relative">
-              {/* Vertical line */}
-              <div className="absolute left-8 top-0 bottom-0 w-0.5 bg-gray-300" />
+              {/* Time Slots */}
+              <div className="space-y-2">
+                {day.timeSlots.map((slot) => (
+                  <div
+                    key={`${day.dayOffset}-${slot.timeStr}`}
+                    className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-4 md:gap-8 items-start group"
+                  >
+                    {/* LEFT: Current Tasks */}
+                    <div className="flex flex-col items-end space-y-2 md:text-right order-2 md:order-1 px-4 md:px-0">
+                      {slot.currentTasks.length > 0 ? (
+                        slot.currentTasks.map((task, idx) => (
+                          <TaskCard key={idx} task={task} />
+                        ))
+                      ) : (
+                        <div className="h-full" /> /* Spacer */
+                      )}
+                    </div>
 
-              <div className="space-y-6">
-                {eventsByDay.map(([dayOffset, events]) => (
-                  <div key={`current-day-${dayOffset}`} className="relative">
-                    {/* Day marker */}
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="w-16 h-16 rounded-full bg-blue-100 border-4 border-white shadow-md flex items-center justify-center z-10">
-                        <span className="text-xs font-bold text-blue-700">
-                          {getDayLabel(dayOffset).split(" ")[1]}
-                        </span>
-                      </div>
-                      <div className="font-semibold text-gray-700">
-                        {getDayLabel(dayOffset)}
+                    {/* CENTER: Time Spine */}
+                    <div className="flex items-center justify-center order-1 md:order-2 py-2 sticky top-20 bg-background/80 backdrop-blur-sm z-10 md:static md:bg-transparent">
+                      <div className="flex items-center justify-center w-16 md:w-auto">
+                        <Badge
+                          variant="outline"
+                          className="font-mono text-xs text-muted-foreground bg-background"
+                        >
+                          {slot.timeStr}
+                        </Badge>
                       </div>
                     </div>
 
-                    {/* Current tasks for this day */}
-                    <div className="ml-24 space-y-2">
-                      {events.current
-                        .filter((e) => e.isStart)
-                        .map((event, idx) => (
-                          <div
-                            key={`current-${dayOffset}-${idx}`}
-                            className="p-3 rounded-lg bg-blue-50 border border-blue-200"
-                          >
-                            <div className="font-medium text-sm">
-                              {event.task.name}
-                            </div>
-                            <div className="text-xs text-gray-600 mt-1">
-                              {formatTime(event.time)} ({event.task.duration}{" "}
-                              min)
-                            </div>
-                            {event.task.type && (
-                              <div className="text-xs text-gray-500 mt-1">
-                                Type: {event.task.type}
-                              </div>
-                            )}
-                          </div>
-                        ))}
+                    {/* RIGHT: Target Tasks */}
+                    <div className="flex flex-col items-start space-y-2 order-3 px-4 md:px-0">
+                      {slot.targetTasks.length > 0 ? (
+                        slot.targetTasks.map((task, idx) => (
+                          <TaskCard key={idx} task={task} />
+                        ))
+                      ) : (
+                        <div className="h-full" />
+                      )}
                     </div>
                   </div>
                 ))}
               </div>
             </div>
-          </CardContent>
-        </Card>
+          ))}
 
-        {/* Target Practice Column */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Calendar className="h-5 w-5" />
-              Target Practice
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="relative">
-              {/* Vertical line */}
-              <div className="absolute left-8 top-0 bottom-0 w-0.5 bg-gray-300" />
-
-              <div className="space-y-6">
-                {eventsByDay.map(([dayOffset, events]) => (
-                  <div key={`target-day-${dayOffset}`} className="relative">
-                    {/* Day marker */}
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="w-16 h-16 rounded-full bg-green-100 border-4 border-white shadow-md flex items-center justify-center z-10">
-                        <span className="text-xs font-bold text-green-700">
-                          {getDayLabel(dayOffset).split(" ")[1]}
-                        </span>
-                      </div>
-                      <div className="font-semibold text-gray-700">
-                        {getDayLabel(dayOffset)}
-                      </div>
-                    </div>
-
-                    {/* Target tasks for this day */}
-                    <div className="ml-24 space-y-2">
-                      {events.target
-                        .filter((e) => e.isStart)
-                        .map((event, idx) => (
-                          <div
-                            key={`target-${dayOffset}-${idx}`}
-                            className="p-3 rounded-lg bg-green-50 border border-green-200"
-                          >
-                            <div className="font-medium text-sm">
-                              {event.task.name}
-                            </div>
-                            <div className="text-xs text-gray-600 mt-1">
-                              {formatTime(event.time)} ({event.task.duration}{" "}
-                              min)
-                            </div>
-                            {event.task.type && (
-                              <div className="text-xs text-gray-500 mt-1">
-                                Type: {event.task.type}
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
+          {timelineData.length === 0 && (
+            <div className="text-center py-12 text-muted-foreground">
+              No tasks found for comparison.
             </div>
-          </CardContent>
-        </Card>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TaskCard({ task }: { task: Task }) {
+  const taskColorObj = TASK_COLORS.find((c) => c.value === task.color);
+  const colorVar = taskColorObj?.color || "var(--primary)";
+
+  // We'll use inline styles to leverage the CSS variable for background opacity
+  const style = {
+    backgroundColor: `color-mix(in srgb, ${colorVar}, transparent 85%)`,
+    borderColor: `color-mix(in srgb, ${colorVar}, transparent 50%)`,
+    // If we want a solid colored left border like a "tag"
+    borderLeftWidth: "4px",
+    borderLeftColor: colorVar,
+  };
+
+  return (
+    <div
+      className={cn(
+        "rounded-r-lg rounded-l-sm border-t border-r border-b px-3 py-2 w-full max-w-[300px] shadow-sm transition-all hover:shadow-md relative",
+      )}
+      style={style}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex items-start gap-2 max-w-[80%]">
+          <span className="text-xs font-semibold leading-tight text-foreground">
+            {task.name}
+          </span>
+        </div>
+        <span className="text-[10px] font-mono shrink-0 text-muted-foreground">
+          {task.duration}m
+        </span>
       </div>
 
-      {/* Bottom Summary */}
-      <Card className="border-2 border-green-500">
-        <CardHeader>
-          <CardTitle className="text-xl text-center">
-            Summary: Total Time Saved
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="text-center space-y-4">
-          <div>
-            <div className="text-5xl font-bold text-green-600">
-              {metrics.timeSavedHours} hours
-            </div>
-            <div className="text-lg text-muted-foreground mt-2">
-              ({metrics.timeSavedMinutes} minutes)
-            </div>
+      <div className="flex items-center gap-3 mt-2">
+        {task.type && (
+          <div className="text-[10px] uppercase text-muted-foreground">
+            {task.type}
           </div>
+        )}
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t">
-            <div>
-              <div className="text-sm text-muted-foreground">
-                Current Duration
-              </div>
-              <div className="text-2xl font-semibold">
-                {Math.round((metrics.currentTotalMinutes / 60) * 10) / 10}h
-              </div>
+        <div className="flex items-center gap-1.5 ml-auto">
+          {task.isCashConfirmed && (
+            <div
+              title="Cash Confirmed"
+              className="bg-green-100 rounded-full p-0.5"
+            >
+              <DollarSign className="w-3 h-3 text-green-700" />
             </div>
-            <div>
-              <div className="text-sm text-muted-foreground">
-                Target Duration
-              </div>
-              <div className="text-2xl font-semibold">
-                {Math.round((metrics.targetTotalMinutes / 60) * 10) / 10}h
-              </div>
+          )}
+          {task.requiresWorkingHours && (
+            <div
+              title="Requires Working Hours"
+              className="bg-blue-100 rounded-full p-0.5"
+            >
+              <Clock className="w-3 h-3 text-blue-700" />
             </div>
-            <div>
-              <div className="text-sm text-muted-foreground">Improvement</div>
-              <div className="text-2xl font-semibold text-green-600">
-                {metrics.percentageSaved}%
-              </div>
-            </div>
-          </div>
-
-          <div className="pt-4 text-sm text-muted-foreground">
-            By optimizing your workflow from current to target practice, you can
-            save significant time and improve operational efficiency.
-          </div>
-        </CardContent>
-      </Card>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

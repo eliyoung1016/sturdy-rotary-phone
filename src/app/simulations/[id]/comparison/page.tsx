@@ -1,10 +1,12 @@
 import { getSimulationById } from "@/app/actions/simulation";
 import { VerticalTimelineComparison } from "@/components/simulation/vertical-timeline-comparison";
+import { HorizontalTimelineComparison } from "@/components/simulation/horizontal-timeline-comparison"; // [NEW]
 import { Card } from "@/components/ui/card";
-import { AlertCircle, ArrowLeft } from "lucide-react";
+import { AlertCircle, ArrowLeft, LayoutList, Columns } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { notFound } from "next/navigation";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"; // [NEW] assume existing
 
 interface ComparisonPageProps {
   params: Promise<{ id: string }>;
@@ -14,7 +16,7 @@ export default async function ComparisonPage(props: ComparisonPageProps) {
   const params = await props.params;
   const simulationId = parseInt(params.id);
 
-  if (isNaN(simulationId)) {
+  if (Number.isNaN(simulationId)) {
     notFound();
   }
 
@@ -65,13 +67,41 @@ export default async function ComparisonPage(props: ComparisonPageProps) {
 
       {/* Comparison View */}
       {currentTasks.length > 0 && targetTasks.length > 0 ? (
-        <VerticalTimelineComparison
-          currentTasks={currentTasks}
-          targetTasks={targetTasks}
-          fundName={simulation.fund.name}
-          officeStart={simulation.fund.officeStart || "09:00"}
-          officeEnd={simulation.fund.officeEnd || "18:00"}
-        />
+        <Tabs defaultValue="vertical" className="space-y-6">
+          <div className="flex justify-center">
+            <TabsList className="grid w-[400px] grid-cols-2">
+              <TabsTrigger value="vertical" className="flex items-center gap-2">
+                <LayoutList className="h-4 w-4" />
+                Vertical View
+              </TabsTrigger>
+              <TabsTrigger
+                value="horizontal"
+                className="flex items-center gap-2"
+              >
+                <Columns className="h-4 w-4" />
+                Horizontal View
+              </TabsTrigger>
+            </TabsList>
+          </div>
+
+          <TabsContent value="vertical" className="animate-in fade-in-50">
+            <VerticalTimelineComparison
+              currentTasks={currentTasks}
+              targetTasks={targetTasks}
+              fundName={simulation.fund.name}
+              officeStart={simulation.fund.officeStart || "09:00"}
+              officeEnd={simulation.fund.officeEnd || "18:00"}
+            />
+          </TabsContent>
+
+          <TabsContent value="horizontal" className="animate-in fade-in-50">
+            <HorizontalTimelineComparison
+              currentTasks={currentTasks}
+              targetTasks={targetTasks}
+              fundName={simulation.fund.name}
+            />
+          </TabsContent>
+        </Tabs>
       ) : (
         <Card className="p-6">
           <div className="text-center text-muted-foreground">

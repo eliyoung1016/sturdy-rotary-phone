@@ -1,7 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import { updateSimulation } from "@/app/actions/simulation";
 import { Input } from "@/components/ui/input";
@@ -24,25 +23,31 @@ interface Task {
 
 interface SimulationViewWrapperProps {
   simulation: any;
+  masterTasks: any[];
 }
 
 export function SimulationViewWrapper({
   simulation,
+  masterTasks,
 }: SimulationViewWrapperProps) {
-  const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [simulationName, setSimulationName] = useState(
     simulation.simulationName || "",
   );
 
-  // Parse saved state if it exists
-  const initialCurrentTasks = simulation.currentStateJson
-    ? JSON.parse(simulation.currentStateJson)
-    : null;
-  const initialTargetTasks = simulation.targetStateJson
-    ? JSON.parse(simulation.targetStateJson)
-    : null;
+  // Parse saved state if it exists, memoized to prevent re-parsing
+  const initialCurrentTasks = useMemo(() => {
+    return simulation.currentStateJson
+      ? JSON.parse(simulation.currentStateJson)
+      : null;
+  }, [simulation.currentStateJson]);
+
+  const initialTargetTasks = useMemo(() => {
+    return simulation.targetStateJson
+      ? JSON.parse(simulation.targetStateJson)
+      : null;
+  }, [simulation.targetStateJson]);
 
   const handleSave = async (
     currentTasks: Task[],
@@ -66,7 +71,7 @@ export function SimulationViewWrapper({
       } else {
         setSaveMessage("Simulation saved successfully!");
       }
-    } catch (err) {
+    } catch (_err) {
       setSaveMessage("Failed to save simulation");
     } finally {
       setIsSaving(false);
@@ -108,6 +113,7 @@ export function SimulationViewWrapper({
         initialCurrentTasks={initialCurrentTasks}
         initialTargetTasks={initialTargetTasks}
         isSaving={isSaving}
+        masterTasks={masterTasks}
       />
     </div>
   );
