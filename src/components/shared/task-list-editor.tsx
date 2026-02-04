@@ -45,7 +45,7 @@ export function TaskListEditor({
   readOnly = false,
   workingHours,
 }: TaskListEditorProps) {
-  const { control, getValues, watch } = useFormContext();
+  const { control, getValues } = useFormContext();
   const { fields, append, remove, update, move, replace } = useFieldArray({
     control,
     name,
@@ -54,21 +54,21 @@ export function TaskListEditor({
   // Watch all tasks to build the dependency map.
   // Using watch with a field array name usually returns the full array.
   // We need this for the `TaskRow` to know parent names without 0(N^2) hook calls/lookups inside render.
-  const allTasks = watch(name);
+  // const allTasks = watch(name);
 
   // Pre-calculate tempId -> Name map for O(1) lookup in TaskRow
   // We memoize this map so it only recalculates when tasks change
-  const taskNameMap = useMemo(() => {
-    const map = new Map<string, string>();
-    if (Array.isArray(allTasks)) {
-      allTasks.forEach((t: TaskItem) => {
-        if (t.tempId) {
-          map.set(t.tempId, t.name);
-        }
-      });
-    }
-    return map;
-  }, [allTasks]);
+  // const taskNameMap = useMemo(() => {
+  //   const map = new Map<string, string>();
+  //   if (Array.isArray(allTasks)) {
+  //     allTasks.forEach((t: TaskItem) => {
+  //       if (t.tempId) {
+  //         map.set(t.tempId, t.name);
+  //       }
+  //     });
+  //   }
+  //   return map;
+  // }, [allTasks]);
 
   const { updateTaskOnMove, recalculateDependentTasks } =
     useTaskDependencies(workingHours);
@@ -352,7 +352,7 @@ export function TaskListEditor({
                   replace={replace}
                   // getValues={getValues} // Removed expensive getValues pass-through usage
                   // Instead pass the map
-                  taskNameMap={taskNameMap}
+                  // taskNameMap={taskNameMap} // Removed in favor of isolated component
                   updateTaskOnMove={updateTaskOnMove}
                   recalculateDependentTasks={recalculateDependentTasks}
                   onOpenColor={handleOpenColor}

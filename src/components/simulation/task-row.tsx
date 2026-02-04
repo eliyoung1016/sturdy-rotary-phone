@@ -6,6 +6,7 @@ import {
   type UseFieldArrayRemove,
   type UseFieldArrayUpdate,
   useFormContext,
+  useWatch,
 } from "react-hook-form";
 
 import { Button } from "@/components/ui/button";
@@ -32,7 +33,6 @@ interface TaskRowProps {
   update: UseFieldArrayUpdate<any, any>;
   remove: UseFieldArrayRemove;
   replace: (items: TaskItem[]) => void;
-  taskNameMap: Map<string, string>;
   updateTaskOnMove: (
     index: number,
     dayOffset: number,
@@ -84,6 +84,48 @@ function SortableTaskItem({
   );
 }
 
+// Isolated component to render dependency label without re-rendering the whole row
+// when other tasks change.
+function DependencyLabel({
+  controlName,
+  dependsOnTempId,
+  dependencyType,
+  dependencyDelay,
+}: {
+  controlName: string;
+  dependsOnTempId?: string | null;
+  dependencyType?: string;
+  dependencyDelay?: number;
+}) {
+  // We need to 'watch' the list to ensure we update when parent name changes?
+  // If we just use getValues(), it won't auto-update when parent name changes.
+  // But if we use watch(), we trigger re-renders.
+  // The goal is to ONLY re-render this label, not the whole Row inputs.
+
+  // Actually, we can use useWatch for the specific parent index if we knew it.
+  // But we don't know the index easily without searching.
+  // Searching requires the list.
+
+  // Let's watch the whole list HERE in this tiny component.
+  // Rerendering this tiny span is cheap.
+  // Rerendering the whole TaskRow (with 10 inputs) is expensive.
+  const allTasks = useWatch({ name: controlName }) as TaskItem[];
+
+  if (!dependsOnTempId) return <>None</>;
+
+  const parent = allTasks?.find((t) => t.tempId === dependsOnTempId);
+  if (!parent) return <>Unknown</>;
+
+  let label = parent.name || "Task";
+  if (dependencyType === "TIME_LAG") {
+    label += ` (+${dependencyDelay}m)`;
+  } else if (dependencyType === "NO_RELATION") {
+    label += ` (No Rel)`;
+  }
+
+  return <span className="truncate">{label}</span>;
+}
+
 export const TaskRow = memo(function TaskRow({
   id,
   index,
@@ -93,7 +135,6 @@ export const TaskRow = memo(function TaskRow({
   update,
   remove,
   replace,
-  taskNameMap,
   updateTaskOnMove,
   recalculateDependentTasks,
   onOpenColor,
@@ -107,23 +148,6 @@ export const TaskRow = memo(function TaskRow({
   const getColorValue = (colorName: string | undefined): string => {
     const found = TASK_COLORS.find((c) => c.value === (colorName || "primary"));
     return found ? found.color : "#3b82f6";
-  };
-
-  const getDependencyLabel = (task: TaskItem) => {
-    if (!task.dependsOnTempId) return "None";
-    // O(1) lookup using the passed map instead of O(N) scan
-    const parentName = taskNameMap.get(task.dependsOnTempId);
-
-    // If not in map, might be stale or ID, fallback to "Unknown" or ID?
-    if (!parentName) return "Unknown";
-
-    let label = parentName;
-    if (task.dependencyType === "TIME_LAG") {
-      label += ` (+${task.dependencyDelay}m)`;
-    } else if (task.dependencyType === "NO_RELATION") {
-      label += ` (No Rel)`;
-    }
-    return label;
   };
 
   if (!taskValues) return null;
@@ -385,7 +409,14 @@ export const TaskRow = memo(function TaskRow({
                 onOpenDependency(taskValues.tempId, e.currentTarget)
               }
             >
-              <span className="truncate">{getDependencyLabel(taskValues)}</span>
+              <span className="truncate">
+                <DependencyLabel
+                  controlName={controlName}
+                  dependsOnTempId={taskValues.dependsOnTempId}
+                  dependencyType={taskValues.dependencyType}
+                  dependencyDelay={taskValues.dependencyDelay}
+                />
+              </span>
             </Button>
           </div>
 
