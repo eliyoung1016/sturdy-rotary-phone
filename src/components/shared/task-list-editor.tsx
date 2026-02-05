@@ -1,11 +1,11 @@
 "use client";
 
 import {
+  closestCenter,
   DndContext,
   type DragEndEvent,
   KeyboardSensor,
   PointerSensor,
-  closestCenter,
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
@@ -15,13 +15,10 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { Plus } from "lucide-react";
-import { useState, useId, useCallback, useMemo } from "react";
+import { useCallback, useId, useState } from "react";
 import { useFieldArray, useFormContext } from "react-hook-form";
 
-import {
-  SharedColorPopover,
-  SharedDependencyPopover,
-} from "@/components/simulation/shared-popovers";
+import { SharedDependencyPopover } from "@/components/simulation/shared-popovers";
 import { TaskRow } from "@/components/simulation/task-row";
 import { Button } from "@/components/ui/button";
 import { useTaskDependencies } from "@/hooks/use-task-dependencies";
@@ -51,25 +48,6 @@ export function TaskListEditor({
     name,
   });
 
-  // Watch all tasks to build the dependency map.
-  // Using watch with a field array name usually returns the full array.
-  // We need this for the `TaskRow` to know parent names without 0(N^2) hook calls/lookups inside render.
-  // const allTasks = watch(name);
-
-  // Pre-calculate tempId -> Name map for O(1) lookup in TaskRow
-  // We memoize this map so it only recalculates when tasks change
-  // const taskNameMap = useMemo(() => {
-  //   const map = new Map<string, string>();
-  //   if (Array.isArray(allTasks)) {
-  //     allTasks.forEach((t: TaskItem) => {
-  //       if (t.tempId) {
-  //         map.set(t.tempId, t.name);
-  //       }
-  //     });
-  //   }
-  //   return map;
-  // }, [allTasks]);
-
   const { updateTaskOnMove, recalculateDependentTasks } =
     useTaskDependencies(workingHours);
 
@@ -83,19 +61,10 @@ export function TaskListEditor({
   const dndContextId = useId();
 
   // Shared Popover State
-  const [activeColorPopover, setActiveColorPopover] = useState<{
-    tempId: string;
-    anchor: HTMLElement | null;
-  } | null>(null);
-
   const [activeDepPopover, setActiveDepPopover] = useState<{
     tempId: string;
     anchor: HTMLElement | null;
   } | null>(null);
-
-  const handleOpenColor = useCallback((tempId: string, anchor: HTMLElement) => {
-    setActiveColorPopover({ tempId, anchor });
-  }, []);
 
   const handleOpenDependency = useCallback(
     (tempId: string, anchor: HTMLElement) => {
@@ -105,17 +74,8 @@ export function TaskListEditor({
   );
 
   const handleClosePopovers = useCallback(() => {
-    setActiveColorPopover(null);
     setActiveDepPopover(null);
   }, []);
-
-  const activeColorTaskIdx = activeColorPopover
-    ? fields.findIndex((f: any) => f.tempId === activeColorPopover.tempId)
-    : -1;
-  const activeColorTask =
-    activeColorTaskIdx !== -1
-      ? (getValues(`${name}.${activeColorTaskIdx}`) as TaskItem)
-      : null;
 
   const activeDepTaskIdx = activeDepPopover
     ? fields.findIndex((f: any) => f.tempId === activeDepPopover.tempId)
@@ -124,65 +84,6 @@ export function TaskListEditor({
     activeDepTaskIdx !== -1
       ? (getValues(`${name}.${activeDepTaskIdx}`) as TaskItem)
       : null;
-
-  const handleColorUpdate = useCallback(
-    (updates: Partial<TaskItem>) => {
-      // We cannot easily close over 'activeColorTaskIdx' because it changes when fields change/sort
-      // But we can look it up efficiently or rely on ref if we wanted.
-      // However, since this is a callback for a popover that is open, we can just look it up freshly or use a ref-tracking approach.
-      // For now, let's keep it simple but acknowledge this function changes when 'fields' changes if we used it directly.
-      // Instead we'll rely on the fact that if popover is open, we have `activeColorPopover.tempId`.
-
-      // To make this stable, we probably shouldn't depend on `fields` or `getValues` inside the callback dependency array?
-      // Actually `getValues` and `update` are stable from RHF.
-      // The state `activeColorPopover` changes.
-      // Let's use the functional update pattern or just use the ref/state we have.
-
-      // Actually, `activeColorPopover` is state. If we use it, we depend on it.
-      // To fully stabilize, ideally we pass the ID to the updater?
-      // The popover calls `onUpdate(updates)`.
-
-      // Let's just trust that `update` and `getValues` are stable, and we need current state.
-      // If we want minimal re-renders, this handler changing is less of an issue than the `TaskRow` handlers.
-      // `TaskRow` doesn't use `handleColorUpdate`, it uses `onOpenColor`.
-      // `handleColorUpdate` is passed to `SharedColorPopover` which is a singleton at the bottom.
-
-      // So we don't strictly need to memoize this for `TaskRow` performance, only for `SharedColorPopover`.
-      // But `TaskRow` uses `onOpenColor` which IS memoized above.
-      // So the list items won't re-render when we open a popover (unless activeColorPopover state causes parent re-render).
-      // Parent re-renders -> List re-renders.
-      // We can't avoid Parent re-render if we store local state here.
-      // Unless we move the State down or context.
-      // But if `TaskRow` is `React.memo`, it will ignore the parent re-render if its props are equal.
-      // `onOpenColor` is stable. `fields` might be new object reference? `useFieldArray` fields is stable if no changes?
-      // Actually `fields` array ref changes on every render of useFieldArray usually? No, only on changes.
-
-      setActiveColorPopover((prev) => {
-        if (!prev) return null;
-        const { tempId } = prev;
-        // We need to find the index dynamically because it might have changed if we allowed sorting while open (unlikely/blocked).
-        // But we can't 'update' without index.
-        // We need access to current value of `name`.
-        const currentFields = getValues(name) as TaskItem[];
-        const index = currentFields.findIndex((t) => t.tempId === tempId);
-        if (index !== -1) {
-          update(index, { ...currentFields[index], ...updates });
-        }
-        return prev; // keep open or close? usually close? The original code didn't close.
-      });
-    },
-    [getValues, name, update],
-  );
-
-  // Original handler was:
-  /*
-  const handleColorUpdate = (updates: Partial<TaskItem>) => {
-    if (activeColorTaskIdx === -1) return;
-    const currentTask = getValues(`${name}.${activeColorTaskIdx}`);
-    update(activeColorTaskIdx, { ...currentTask, ...updates });
-  };
-  */
-  // I'll stick closer to the original logic but make it safe for `useCallback` by not depending on computed `activeColorTaskIdx`.
 
   const handleDependencyUpdate = useCallback(
     (updates: Partial<TaskItem>) => {
@@ -233,22 +134,10 @@ export function TaskListEditor({
     [getValues, name, recalculateDependentTasks, replace],
   );
 
-  // Wait, `setActiveDepPopover` updater pattern is slightly abusive here for side effects.
-  // But `activeDepTaskIdx` was computed in render.
-  // Let's just lookup index inside the callback.
-
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
       const { active, over } = event;
       if (over && active.id !== over.id) {
-        // We need current fields to find index?
-        // `fields` from `useFieldArray` works but we want to be careful about closure freshness if we don't add it to deps.
-        // But `fields` changes often.
-        // We can use `getValues(name)` or the `fields` from the scope.
-        // To keep `handleDragEnd` stable, we can't depend on `fields`.
-        // We should use functional state updates or lookups?
-        // `move` is stable.
-        // We need to find indices.
         const currentItems = getValues(name);
         const oldIndex = currentItems.findIndex(
           (i: any) => i.tempId === active.id,
@@ -350,12 +239,8 @@ export function TaskListEditor({
                   update={update}
                   remove={remove}
                   replace={replace}
-                  // getValues={getValues} // Removed expensive getValues pass-through usage
-                  // Instead pass the map
-                  // taskNameMap={taskNameMap} // Removed in favor of isolated component
                   updateTaskOnMove={updateTaskOnMove}
                   recalculateDependentTasks={recalculateDependentTasks}
-                  onOpenColor={handleOpenColor}
                   onOpenDependency={handleOpenDependency}
                 />
               ))}
@@ -368,13 +253,6 @@ export function TaskListEditor({
           )}
         </div>
       </div>
-      <SharedColorPopover
-        isOpen={!!activeColorPopover}
-        onClose={handleClosePopovers}
-        anchorEl={activeColorPopover?.anchor ?? null}
-        task={activeColorTask}
-        onUpdate={handleColorUpdate}
-      />
 
       <SharedDependencyPopover
         isOpen={!!activeDepPopover}

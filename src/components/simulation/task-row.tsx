@@ -1,7 +1,7 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Clock, DollarSign, GripVertical, Trash2 } from "lucide-react";
-import { useRef, useState, memo } from "react";
+import { memo, useRef } from "react";
 import {
   type UseFieldArrayRemove,
   type UseFieldArrayUpdate,
@@ -43,7 +43,6 @@ interface TaskRowProps {
     tempId: string,
     currentTasks: TaskItem[],
   ) => TaskItem[];
-  onOpenColor: (tempId: string, anchor: HTMLElement) => void;
   onOpenDependency: (tempId: string, anchor: HTMLElement) => void;
 }
 
@@ -137,7 +136,6 @@ export const TaskRow = memo(function TaskRow({
   replace,
   updateTaskOnMove,
   recalculateDependentTasks,
-  onOpenColor,
   onOpenDependency,
 }: TaskRowProps) {
   const { register, setValue, watch, getValues } = useFormContext();
@@ -154,355 +152,321 @@ export const TaskRow = memo(function TaskRow({
 
   return (
     <SortableTaskItem id={id}>
-      {({ attributes, listeners }) => (
-        <div className="grid grid-cols-[30px_1fr_100px_280px_0.9fr_90px_30px] gap-2 items-center px-3 py-2">
-          {/* Drag Handle */}
+      {({ attributes, listeners }) => {
+        const colorValue = getColorValue(taskValues.color);
+        const style = {
+          backgroundColor: `color-mix(in srgb, ${colorValue}, transparent 95%)`,
+          borderColor: `color-mix(in srgb, ${colorValue}, transparent 50%)`,
+          borderLeftWidth: "4px",
+          borderLeftColor: colorValue,
+        };
+
+        return (
           <div
-            {...attributes}
-            {...listeners}
-            className={cn(
-              "flex justify-center flex-shrink-0 p-1 rounded",
-              readOnly
-                ? "opacity-50 cursor-not-allowed"
-                : "cursor-grab hover:bg-muted active:cursor-grabbing text-muted-foreground",
-            )}
+            className="grid grid-cols-[30px_1fr_100px_280px_0.9fr_90px_30px] gap-2 items-center px-3 py-2 border-b last:border-0"
+            style={style}
           >
-            <GripVertical className="h-4 w-4" />
-          </div>
-
-          {/* Task Source / Name */}
-          <div className="space-y-1">
-            <Select
-              disabled={readOnly}
-              value={
-                taskValues.taskId ? taskValues.taskId.toString() : "custom"
-              }
-              onValueChange={(val) => {
-                const currentVal = getValues(`${controlName}.${index}`);
-                if (val === "custom") {
-                  update(index, {
-                    ...currentVal,
-                    taskId: undefined,
-                    name: "",
-                    saveToMaster: false,
-                    type: "PROCESS",
-                    duration: 0,
-                    color: "primary",
-                    isCashConfirmed: false,
-                    requiresWorkingHours: false,
-                  });
-                } else {
-                  const mt = masterTasks.find((t) => t.id === Number(val));
-                  update(index, {
-                    ...currentVal,
-                    taskId: Number(val),
-                    name: mt?.name || "",
-                    duration: mt?.duration || 0,
-                    type: mt?.type || "PROCESS",
-                    color: mt?.color || "primary",
-                    isCashConfirmed: mt?.isCashConfirmed || false,
-                    requiresWorkingHours: mt?.requiresWorkingHours || false,
-                    saveToMaster: false,
-                  });
-                }
-              }}
+            {/* Drag Handle */}
+            <div
+              {...attributes}
+              {...listeners}
+              className={cn(
+                "flex justify-center flex-shrink-0 p-1 rounded",
+                readOnly
+                  ? "opacity-50 cursor-not-allowed"
+                  : "cursor-grab hover:bg-black/5 active:cursor-grabbing text-muted-foreground",
+              )}
             >
-              <SelectTrigger className="h-7 text-xs border-transparent hover:border-input focus:border-input bg-transparent px-2">
-                <SelectValue placeholder="Select Task Source" />
-              </SelectTrigger>
-              <SelectContent>
-                {masterTasks.map((t) => (
-                  <SelectItem key={t.id} value={t.id.toString()}>
-                    {t.name}
-                  </SelectItem>
-                ))}
-                <SelectItem value="custom">-- New Task --</SelectItem>
-              </SelectContent>
-            </Select>
+              <GripVertical className="h-4 w-4" />
+            </div>
 
-            {!taskValues.taskId ? (
-              <div className="flex flex-col gap-1 w-full">
-                <Input
-                  disabled={readOnly}
-                  placeholder="Task Name"
-                  className="h-9 text-xs"
+            {/* Task Source / Name */}
+            <div className="space-y-1">
+              <Select
+                disabled={readOnly}
+                value={
+                  taskValues.taskId ? taskValues.taskId.toString() : "custom"
+                }
+                onValueChange={(val) => {
+                  const currentVal = getValues(`${controlName}.${index}`);
+                  if (val === "custom") {
+                    update(index, {
+                      ...currentVal,
+                      taskId: undefined,
+                      name: "",
+                      saveToMaster: false,
+                      type: "PROCESS",
+                      duration: 0,
+                      color: "primary",
+                      isCashConfirmed: false,
+                      requiresWorkingHours: false,
+                    });
+                  } else {
+                    const mt = masterTasks.find((t) => t.id === Number(val));
+                    update(index, {
+                      ...currentVal,
+                      taskId: Number(val),
+                      name: mt?.name || "",
+                      duration: mt?.duration || 0,
+                      type: mt?.type || "PROCESS",
+                      color: mt?.color || "primary",
+                      isCashConfirmed: mt?.isCashConfirmed || false,
+                      requiresWorkingHours: mt?.requiresWorkingHours || false,
+                      saveToMaster: false,
+                    });
+                  }
+                }}
+              >
+                <SelectTrigger className="h-7 text-xs border-transparent hover:border-input focus:border-input bg-transparent px-2">
+                  <SelectValue placeholder="Select Task Source" />
+                </SelectTrigger>
+                <SelectContent>
+                  {masterTasks.map((t) => (
+                    <SelectItem key={t.id} value={t.id.toString()}>
+                      {t.name}
+                    </SelectItem>
+                  ))}
+                  <SelectItem value="custom">-- New Task --</SelectItem>
+                </SelectContent>
+              </Select>
+
+              {!taskValues.taskId ? (
+                <div className="flex flex-col gap-1 w-full">
+                  <Input
+                    disabled={readOnly}
+                    placeholder="Task Name"
+                    className="h-9 text-xs"
+                    {...register(`${controlName}.${index}.name`)}
+                  />
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      disabled={readOnly}
+                      id={`saveToMaster-${id}`}
+                      className="h-3.5 w-3.5"
+                      checked={!!taskValues.saveToMaster}
+                      onCheckedChange={(checked) => {
+                        setValue(
+                          `${controlName}.${index}.saveToMaster`,
+                          !!checked,
+                        );
+                      }}
+                    />
+                    <Label
+                      htmlFor={`saveToMaster-${id}`}
+                      className="text-xs text-muted-foreground whitespace-nowrap cursor-pointer"
+                    >
+                      Save to Master
+                    </Label>
+                  </div>
+                </div>
+              ) : (
+                <input
+                  type="hidden"
                   {...register(`${controlName}.${index}.name`)}
                 />
-                <div className="flex items-center gap-2">
-                  <Checkbox
-                    disabled={readOnly}
-                    id={`saveToMaster-${id}`}
-                    className="h-3.5 w-3.5"
-                    checked={!!taskValues.saveToMaster}
-                    onCheckedChange={(checked) => {
-                      setValue(
-                        `${controlName}.${index}.saveToMaster`,
-                        !!checked,
-                      );
-                    }}
-                  />
-                  <Label
-                    htmlFor={`saveToMaster-${id}`}
-                    className="text-xs text-muted-foreground whitespace-nowrap cursor-pointer"
-                  >
-                    Save to Master
-                  </Label>
-                </div>
-              </div>
-            ) : (
-              <input
-                type="hidden"
-                {...register(`${controlName}.${index}.name`)}
+              )}
+            </div>
+
+            {/* Type Select */}
+            <div>
+              <Select
+                disabled={readOnly || !!taskValues.taskId}
+                value={taskValues.type || "PROCESS"}
+                onValueChange={(val) => {
+                  const newType = val as "PROCESS" | "CUTOFF";
+                  const newDuration =
+                    newType === "CUTOFF" ? 0 : taskValues.duration;
+                  const currentTasks = [...getValues(controlName)];
+
+                  currentTasks[index] = {
+                    ...currentTasks[index],
+                    type: newType,
+                    duration: newDuration,
+                  };
+
+                  if (newDuration !== taskValues.duration) {
+                    const updatedTasks = recalculateDependentTasks(
+                      currentTasks[index].tempId,
+                      currentTasks,
+                    );
+                    setValue(controlName, updatedTasks);
+                  } else {
+                    setValue(controlName, currentTasks);
+                  }
+                }}
+              >
+                <SelectTrigger className="h-7 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="PROCESS">Process</SelectItem>
+                  <SelectItem value="CUTOFF">Cutoff</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Day / Time / Duration */}
+            <div className="grid grid-cols-[60px_1fr_1fr] gap-1">
+              <Select
+                disabled={readOnly}
+                value={taskValues.dayOffset.toString()}
+                onValueChange={(val) => {
+                  const newOffset = Number(val);
+                  const currentTasks = [...getValues(controlName)];
+                  const updatedTasks = updateTaskOnMove(
+                    index,
+                    newOffset,
+                    taskValues.startTime || "09:00",
+                    currentTasks,
+                  );
+                  setValue(controlName, updatedTasks);
+                }}
+              >
+                <SelectTrigger className="h-9 text-xs px-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="-2">D-2</SelectItem>
+                  <SelectItem value="-1">D-1</SelectItem>
+                  <SelectItem value="0">D</SelectItem>
+                  <SelectItem value="1">D+1</SelectItem>
+                  <SelectItem value="2">D+2</SelectItem>
+                  <SelectItem value="3">D+3</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Input
+                disabled={readOnly}
+                type="time"
+                className="h-9 text-xs px-1"
+                value={taskValues.startTime || ""}
+                onFocus={(e) => {
+                  focusValueRef.current = e.target.value;
+                }}
+                {...register(`${controlName}.${index}.startTime`)}
+                onBlur={(e) => {
+                  const newValue = e.target.value;
+                  if (newValue === focusValueRef.current) return;
+
+                  const currentTasks = getValues(controlName).map((t: any) => ({
+                    ...t,
+                  }));
+
+                  const updatedTasks = updateTaskOnMove(
+                    index,
+                    taskValues.dayOffset,
+                    newValue,
+                    currentTasks,
+                  );
+                  replace(updatedTasks);
+                  focusValueRef.current = newValue;
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.currentTarget.blur();
+                  }
+                }}
               />
-            )}
-          </div>
 
-          {/* Type Select */}
-          <div>
-            <Select
-              disabled={readOnly || !!taskValues.taskId}
-              value={taskValues.type || "PROCESS"}
-              onValueChange={(val) => {
-                const newType = val as "PROCESS" | "CUTOFF";
-                const newDuration =
-                  newType === "CUTOFF" ? 0 : taskValues.duration;
-                const currentTasks = [...getValues(controlName)];
+              <Input
+                type="number"
+                disabled={readOnly || taskValues.type === "CUTOFF"}
+                className="h-9 text-xs px-1"
+                value={taskValues.duration ?? 0}
+                onFocus={(e) => {
+                  focusValueRef.current = e.target.value;
+                }}
+                {...register(`${controlName}.${index}.duration`, {
+                  valueAsNumber: true,
+                })}
+                onBlur={(e) => {
+                  const newDuration = Number(e.target.value);
+                  if (Number(focusValueRef.current) === newDuration) return;
 
-                currentTasks[index] = {
-                  ...currentTasks[index],
-                  type: newType,
-                  duration: newDuration,
-                };
+                  const currentTasks = getValues(controlName).map((t: any) => ({
+                    ...t,
+                  }));
 
-                if (newDuration !== taskValues.duration) {
+                  currentTasks[index].duration = newDuration;
+
                   const updatedTasks = recalculateDependentTasks(
                     currentTasks[index].tempId,
                     currentTasks,
                   );
-                  setValue(controlName, updatedTasks);
-                } else {
-                  setValue(controlName, currentTasks);
+                  replace(updatedTasks);
+                  focusValueRef.current = newDuration.toString();
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.currentTarget.blur();
+                  }
+                }}
+              />
+            </div>
+
+            {/* Dependency */}
+            <div>
+              <Button
+                variant="outline"
+                type="button"
+                role="combobox"
+                disabled={readOnly}
+                className={cn(
+                  "w-full h-9 text-xs justify-between px-2 font-normal",
+                  !taskValues.dependsOnTempId && "text-muted-foreground",
+                )}
+                onClick={(e) =>
+                  onOpenDependency(taskValues.tempId, e.currentTarget)
                 }
-              }}
-            >
-              <SelectTrigger className="h-7 text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="PROCESS">Process</SelectItem>
-                <SelectItem value="CUTOFF">Cutoff</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+              >
+                <span className="truncate">
+                  <DependencyLabel
+                    controlName={controlName}
+                    dependsOnTempId={taskValues.dependsOnTempId}
+                    dependencyType={taskValues.dependencyType}
+                    dependencyDelay={taskValues.dependencyDelay}
+                  />
+                </span>
+              </Button>
+            </div>
 
-          {/* Day / Time / Duration */}
-          <div className="grid grid-cols-[60px_1fr_1fr] gap-1">
-            <Select
-              disabled={readOnly}
-              value={taskValues.dayOffset.toString()}
-              onValueChange={(val) => {
-                const newOffset = Number(val);
-                const currentTasks = [...getValues(controlName)];
-                const updatedTasks = updateTaskOnMove(
-                  index,
-                  newOffset,
-                  taskValues.startTime || "09:00",
-                  currentTasks,
-                );
-                setValue(controlName, updatedTasks);
-              }}
-            >
-              <SelectTrigger className="h-9 text-xs px-1">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="-2">D-2</SelectItem>
-                <SelectItem value="-1">D-1</SelectItem>
-                <SelectItem value="0">D</SelectItem>
-                <SelectItem value="1">D+1</SelectItem>
-                <SelectItem value="2">D+2</SelectItem>
-                <SelectItem value="3">D+3</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Input
-              disabled={readOnly}
-              type="time"
-              className="h-9 text-xs px-1"
-              value={taskValues.startTime || ""}
-              onFocus={(e) => {
-                focusValueRef.current = e.target.value;
-              }}
-              {...register(`${controlName}.${index}.startTime`)}
-              onBlur={(e) => {
-                const newValue = e.target.value;
-                if (newValue === focusValueRef.current) return;
-
-                const currentTasks = getValues(controlName).map((t: any) => ({
-                  ...t,
-                }));
-
-                const updatedTasks = updateTaskOnMove(
-                  index,
-                  taskValues.dayOffset,
-                  newValue,
-                  currentTasks,
-                );
-                replace(updatedTasks);
-                focusValueRef.current = newValue;
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.currentTarget.blur();
-                }
-              }}
-            />
-
-            <Input
-              type="number"
-              disabled={readOnly || taskValues.type === "CUTOFF"}
-              className="h-9 text-xs px-1"
-              value={taskValues.duration ?? 0}
-              onFocus={(e) => {
-                focusValueRef.current = e.target.value;
-              }}
-              {...register(`${controlName}.${index}.duration`, {
-                valueAsNumber: true,
-              })}
-              onBlur={(e) => {
-                const newDuration = Number(e.target.value);
-                if (Number(focusValueRef.current) === newDuration) return;
-
-                const currentTasks = getValues(controlName).map((t: any) => ({
-                  ...t,
-                }));
-
-                currentTasks[index].duration = newDuration;
-
-                const updatedTasks = recalculateDependentTasks(
-                  currentTasks[index].tempId,
-                  currentTasks,
-                );
-                replace(updatedTasks);
-                focusValueRef.current = newDuration.toString();
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.currentTarget.blur();
-                }
-              }}
-            />
-          </div>
-
-          {/* Dependency */}
-          <div>
-            <Button
-              variant="outline"
-              type="button"
-              role="combobox"
-              disabled={readOnly}
-              className={cn(
-                "w-full h-9 text-xs justify-between px-2 font-normal",
-                !taskValues.dependsOnTempId && "text-muted-foreground",
+            {/* Indicators (Read Only) */}
+            <div className="flex items-center justify-end gap-1.5 min-w-[50px]">
+              {taskValues.isCashConfirmed && (
+                <div
+                  title="Cash Confirmed"
+                  className="bg-green-100 rounded-full p-1 flex-shrink-0"
+                >
+                  <DollarSign className="w-3.5 h-3.5 text-green-700" />
+                </div>
               )}
-              onClick={(e) =>
-                onOpenDependency(taskValues.tempId, e.currentTarget)
-              }
-            >
-              <span className="truncate">
-                <DependencyLabel
-                  controlName={controlName}
-                  dependsOnTempId={taskValues.dependsOnTempId}
-                  dependencyType={taskValues.dependencyType}
-                  dependencyDelay={taskValues.dependencyDelay}
-                />
-              </span>
-            </Button>
-          </div>
-
-          {/* Indicators + Attributes */}
-          <div className="flex items-center justify-end gap-1">
-            {/* Color Trigger */}
-            <div
-              className="w-4 h-4 rounded-full border border-gray-200 cursor-pointer hover:ring-2 hover:ring-offset-1 hover:ring-primary/50 transition-all"
-              style={{
-                background: getColorValue(taskValues.color),
-              }}
-              title={`Color: ${taskValues.color || "primary"}`}
-              onClick={(e) => onOpenColor(taskValues.tempId, e.currentTarget)}
-            />
-
-            {/* Cash Toggle */}
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className={cn(
-                "h-6 w-6 rounded-full",
-                taskValues.isCashConfirmed
-                  ? "text-green-600 bg-green-50 hover:bg-green-100"
-                  : "text-muted-foreground hover:bg-muted",
+              {taskValues.requiresWorkingHours && (
+                <div
+                  title="Requires Working Hours"
+                  className="bg-blue-100 rounded-full p-1 flex-shrink-0"
+                >
+                  <Clock className="w-3.5 h-3.5 text-blue-700" />
+                </div>
               )}
-              title="Toggle Cash Confirmed"
-              disabled={readOnly}
-              onClick={() => {
-                const currentTasks = getValues(controlName);
-                const updatedTask = {
-                  ...currentTasks[index],
-                  isCashConfirmed: !taskValues.isCashConfirmed,
-                };
-                update(index, updatedTask);
-                // Sync direct value
-                currentTasks[index] = updatedTask;
-              }}
-            >
-              <DollarSign className="h-3.5 w-3.5" />
-            </Button>
+            </div>
 
-            {/* Working Hours Toggle */}
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className={cn(
-                "h-6 w-6 rounded-full",
-                taskValues.requiresWorkingHours
-                  ? "text-blue-600 bg-blue-50 hover:bg-blue-100"
-                  : "text-muted-foreground hover:bg-muted",
-              )}
-              title="Toggle Working Hours"
-              disabled={readOnly}
-              onClick={() => {
-                const currentTasks = getValues(controlName);
-                const updatedTask = {
-                  ...currentTasks[index],
-                  requiresWorkingHours: !taskValues.requiresWorkingHours,
-                };
-                update(index, updatedTask);
-                // Sync direct value
-                currentTasks[index] = updatedTask;
-              }}
-            >
-              <Clock className="h-3.5 w-3.5" />
-            </Button>
+            {/* Remove */}
+            <div className="flex justify-end">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                disabled={readOnly}
+                onClick={() => remove(index)}
+                title="Remove Task"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
-
-          {/* Remove */}
-          <div>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 text-muted-foreground hover:text-destructive"
-              disabled={readOnly}
-              onClick={() => remove(index)}
-              title="Remove Task"
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      )}
+        );
+      }}
     </SortableTaskItem>
   );
 });
