@@ -18,7 +18,7 @@ import { Plus } from "lucide-react";
 import { useCallback, useId, useState } from "react";
 import { useFieldArray, useFormContext } from "react-hook-form";
 
-import { SharedDependencyPopover } from "@/components/simulation/shared-popovers";
+import { DependencyPopover } from "@/components/shared/dependency-popover";
 import { TaskRow } from "@/components/simulation/task-row";
 import { Button } from "@/components/ui/button";
 import { useTaskDependencies } from "@/hooks/use-task-dependencies";
@@ -100,10 +100,6 @@ export function TaskListEditor({
           ...currentTasks[index],
           ...updates,
         };
-
-        // Recalc logic ...
-        // We need `recalculateDependentTasks` to be stable or in deps.
-        // It comes from hook.
 
         if (
           updates.dependsOnTempId !== undefined ||
@@ -254,12 +250,12 @@ export function TaskListEditor({
         </div>
       </div>
 
-      <SharedDependencyPopover
+      <DependencyPopover
         isOpen={!!activeDepPopover}
         onClose={handleClosePopovers}
         anchorEl={activeDepPopover?.anchor ?? null}
         task={activeDepTask}
-        allTasks={getValues(name) as TaskItem[]} // Pass current form values
+        allTasks={fields as unknown as TaskItem[]}
         onUpdate={handleDependencyUpdate}
       />
     </div>
