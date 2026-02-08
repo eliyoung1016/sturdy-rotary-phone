@@ -822,7 +822,9 @@ export const MasterTaskScalarFieldEnum = {
   duration: 'duration',
   color: 'color',
   isCashConfirmed: 'isCashConfirmed',
-  requiresWorkingHours: 'requiresWorkingHours'
+  requiresWorkingHours: 'requiresWorkingHours',
+  shortName: 'shortName',
+  correspondingTaskId: 'correspondingTaskId'
 } as const
 
 export type MasterTaskScalarFieldEnum = (typeof MasterTaskScalarFieldEnum)[keyof typeof MasterTaskScalarFieldEnum]

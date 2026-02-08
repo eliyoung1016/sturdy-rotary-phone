@@ -5,6 +5,10 @@ import { MasterTaskList } from "./master-task-list";
 // Helper type to handle the data transformation
 interface MasterTask extends MasterTaskInput {
   id: number;
+  correspondingTask: { id: number; name: string } | null;
+  correspondingTaskOf: { id: number; name: string } | null;
+  // biome-ignore lint/suspicious/noExplicitAny: prisma include types are complex
+  [key: string]: any;
 }
 
 export default async function MasterTasksPage() {
@@ -15,6 +19,14 @@ export default async function MasterTasksPage() {
   const tasks = data?.map((t) => ({
     ...t,
     type: t.type as "CUTOFF" | "PROCESS",
+    correspondingTaskId: t.correspondingTaskId,
+    // Add missing mapped properties for validation in Dialog
+    correspondingTaskOf: t.correspondingTaskOf
+      ? { id: t.correspondingTaskOf.id, name: t.correspondingTaskOf.name }
+      : null,
+    correspondingTask: t.correspondingTask
+      ? { id: t.correspondingTask.id, name: t.correspondingTask.name }
+      : null,
   })) as MasterTask[] | undefined;
 
   return (

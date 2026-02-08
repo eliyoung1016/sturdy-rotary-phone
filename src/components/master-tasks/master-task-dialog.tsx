@@ -15,6 +15,11 @@ interface MasterTaskDialogProps {
   onOpenChange: (open: boolean) => void;
   initialData?: MasterTaskInput & { id?: number };
   mode: "create" | "edit";
+  tasks?: (MasterTaskInput & {
+    id: number;
+    correspondingTaskId?: number | null;
+    correspondingTaskOf?: { id: number } | null;
+  })[];
 }
 
 export function MasterTaskDialog({
@@ -22,10 +27,11 @@ export function MasterTaskDialog({
   onOpenChange,
   initialData,
   mode,
+  tasks,
 }: MasterTaskDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle>
             {mode === "create" ? "Create Master Task" : "Edit Master Task"}
@@ -39,6 +45,7 @@ export function MasterTaskDialog({
         <MasterTaskForm
           initialData={initialData}
           mode={mode}
+          tasks={tasks}
           onSuccess={() => onOpenChange(false)}
           onCancel={() => onOpenChange(false)}
         />

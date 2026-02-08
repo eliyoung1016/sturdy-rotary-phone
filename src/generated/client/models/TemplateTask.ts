@@ -740,14 +740,6 @@ export type TemplateTaskUncheckedCreateNestedManyWithoutDependsOnInput = {
   connect?: Prisma.TemplateTaskWhereUniqueInput | Prisma.TemplateTaskWhereUniqueInput[]
 }
 
-export type NullableIntFieldUpdateOperationsInput = {
-  set?: number | null
-  increment?: number
-  decrement?: number
-  multiply?: number
-  divide?: number
-}
-
 export type TemplateTaskUpdateOneWithoutDependentsNestedInput = {
   create?: Prisma.XOR<Prisma.TemplateTaskCreateWithoutDependentsInput, Prisma.TemplateTaskUncheckedCreateWithoutDependentsInput>
   connectOrCreate?: Prisma.TemplateTaskCreateOrConnectWithoutDependentsInput

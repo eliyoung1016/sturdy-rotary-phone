@@ -6,7 +6,10 @@ CREATE TABLE master_tasks (
     duration INTEGER NOT NULL,
     color TEXT DEFAULT 'primary',
     is_cash_confirmed BOOLEAN DEFAULT 0,
-    requires_working_hours BOOLEAN DEFAULT 0
+    requires_working_hours BOOLEAN DEFAULT 0,
+    short_name TEXT,
+    corresponding_task_id INTEGER UNIQUE,
+    FOREIGN KEY (corresponding_task_id) REFERENCES master_tasks(id)
 );
 
 CREATE TABLE templates (

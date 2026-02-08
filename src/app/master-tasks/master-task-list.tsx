@@ -18,6 +18,8 @@ import type { MasterTaskInput } from "@/lib/schemas/master-task";
 
 interface MasterTask extends MasterTaskInput {
   id: number;
+  correspondingTask: { id: number; name: string } | null;
+  correspondingTaskOf: { id: number; name: string } | null;
 }
 
 interface MasterTaskListProps {
@@ -53,7 +55,9 @@ export function MasterTaskList({ tasks }: MasterTaskListProps) {
           <TableCaption>A list of your master tasks.</TableCaption>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-[80px]">Short</TableHead>
               <TableHead className="w-[200px]">Name</TableHead>
+              <TableHead>Linked To</TableHead>
               <TableHead>Type</TableHead>
               <TableHead>Duration</TableHead>
               <TableHead className="hidden md:table-cell">
@@ -67,7 +71,15 @@ export function MasterTaskList({ tasks }: MasterTaskListProps) {
             {tasks && tasks.length > 0 ? (
               tasks.map((task) => (
                 <TableRow key={task.id}>
+                  <TableCell className="font-mono text-xs">
+                    {task.shortName || "-"}
+                  </TableCell>
                   <TableCell className="font-medium">{task.name}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {task.correspondingTask?.name ||
+                      task.correspondingTaskOf?.name ||
+                      "-"}
+                  </TableCell>
                   <TableCell>{task.type}</TableCell>
                   <TableCell>
                     {task.type === "CUTOFF" ? "-" : `${task.duration}m`}
@@ -110,7 +122,7 @@ export function MasterTaskList({ tasks }: MasterTaskListProps) {
             ) : (
               <TableRow>
                 <TableCell
-                  colSpan={6}
+                  colSpan={8}
                   className="h-24 text-center text-muted-foreground"
                 >
                   No tasks found. Create one to get started.
@@ -125,6 +137,7 @@ export function MasterTaskList({ tasks }: MasterTaskListProps) {
         open={isCreateOpen}
         onOpenChange={setIsCreateOpen}
         mode="create"
+        tasks={tasks}
       />
 
       <MasterTaskDialog
@@ -132,6 +145,7 @@ export function MasterTaskList({ tasks }: MasterTaskListProps) {
         onOpenChange={(open: boolean) => !open && setEditingTask(null)}
         initialData={editingTask || undefined}
         mode="edit"
+        tasks={tasks}
       />
     </>
   );

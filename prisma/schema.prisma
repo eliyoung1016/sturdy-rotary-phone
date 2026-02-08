@@ -20,6 +20,11 @@ model MasterTask {
   color               String? @default("primary")
   isCashConfirmed     Boolean @default(false) @map("is_cash_confirmed")
   requiresWorkingHours Boolean @default(false) @map("requires_working_hours")
+  shortName           String? @map("short_name") // Max 3 chars
+  correspondingTaskId Int?    @unique @map("corresponding_task_id")
+
+  correspondingTask   MasterTask? @relation("CorrespondingTasks", fields: [correspondingTaskId], references: [id])
+  correspondingTaskOf MasterTask? @relation("CorrespondingTasks")
 
   templateTasks       TemplateTask[]
 

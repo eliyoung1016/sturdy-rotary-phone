@@ -12,6 +12,11 @@ export const masterTaskSchema = z
     color: z.string().optional().default("primary"),
     isCashConfirmed: z.boolean().default(false),
     requiresWorkingHours: z.boolean().default(false),
+    shortName: z
+      .string()
+      .max(3, "Short name must be at most 3 characters")
+      .optional(),
+    correspondingTaskId: z.coerce.number().int().optional().nullable(),
   })
   .superRefine((data, ctx) => {
     if (data.type === "PROCESS" && data.duration < 1) {
