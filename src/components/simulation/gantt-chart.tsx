@@ -294,7 +294,7 @@ const GanttTaskBar = memo(
         ) : (
           <motion.div
             className={cn(
-              "absolute top-0 h-8 rounded-md flex items-center px-2 text-xs font-semibold text-white cursor-grab active:cursor-grabbing",
+              "absolute top-0 h-8 rounded-md flex items-center px-2 text-xs font-semibold text-white cursor-grab active:cursor-grabbing overflow-visible",
               !readOnly
                 ? !task.color && "bg-primary hover:bg-primary/90"
                 : "bg-muted-foreground",
@@ -352,7 +352,36 @@ const GanttTaskBar = memo(
               onTaskUpdate(task.tempId, dayOffset, startTime, task.duration);
             }}
           >
-            <span className="truncate w-full">{task.name}</span>
+            {(() => {
+              const availableWidth = (widthPercent / 100) * chartWidth;
+              const charWidth = 7; // Estimate for text-xs font-semibold
+              const padding = 16; // 8px each side
+              const fullNameWidth = task.name.length * charWidth + padding;
+              
+              // Prioritize database shortName if it exists, otherwise use fallback logic
+              const shortName =
+                task.shortName || 
+                (task.name.includes(" ") 
+                  ? task.name.split(" ").map(w => w[0]).join("").toUpperCase()
+                  : task.name.substring(0, 3).toUpperCase());
+              
+              const shortNameWidth = shortName.length * charWidth + padding;
+
+              if (availableWidth >= fullNameWidth) {
+                return <span className="truncate w-full">{task.name}</span>;
+              }
+              if (availableWidth >= shortNameWidth) {
+                return <span className="truncate w-full">{shortName}</span>;
+              }
+              return (
+                <span
+                  className="absolute left-full ml-2 text-primary font-bold whitespace-nowrap drop-shadow-sm"
+                  style={{ color: !readOnly && task.color ? colorStyle : undefined }}
+                >
+                  {task.name}
+                </span>
+              );
+            })()}
 
             {!readOnly && (
               <div

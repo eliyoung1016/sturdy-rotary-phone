@@ -12,6 +12,9 @@ export async function getSimulationData(fundId: number) {
         currentTemplate: {
           include: {
             templateTasks: {
+              include: {
+                masterTask: true,
+              },
               orderBy: {
                 sequenceOrder: "asc",
               },
@@ -21,6 +24,9 @@ export async function getSimulationData(fundId: number) {
         targetTemplate: {
           include: {
             templateTasks: {
+              include: {
+                masterTask: true,
+              },
               orderBy: {
                 sequenceOrder: "asc",
               },
@@ -68,6 +74,9 @@ export async function getSimulationById(id: number) {
             currentTemplate: {
               include: {
                 templateTasks: {
+                  include: {
+                    masterTask: true,
+                  },
                   orderBy: {
                     sequenceOrder: "asc",
                   },
@@ -77,6 +86,9 @@ export async function getSimulationById(id: number) {
             targetTemplate: {
               include: {
                 templateTasks: {
+                  include: {
+                    masterTask: true,
+                  },
                   orderBy: {
                     sequenceOrder: "asc",
                   },

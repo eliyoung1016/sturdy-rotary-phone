@@ -1,6 +1,7 @@
 export interface MasterTask {
   id: number;
   name: string;
+  shortName?: string;
   duration: number;
   type: "PROCESS" | "CUTOFF";
   color: string;
@@ -11,6 +12,7 @@ export interface MasterTask {
 export interface TaskItem {
   tempId: string;
   name: string;
+  shortName?: string;
   dayOffset: number;
   startTime: string; // "HH:mm"
   duration: number; // minutes

@@ -85,6 +85,7 @@ export function SimulationView({
     return tasks.map((t) => ({
       tempId: t.tempId || t.id?.toString() || crypto.randomUUID(),
       name: t.name,
+      shortName: t.shortName || t.masterTask?.shortName || undefined,
       dayOffset: t.dayOffset,
       startTime: t.startTime || "09:00",
       duration: t.duration,

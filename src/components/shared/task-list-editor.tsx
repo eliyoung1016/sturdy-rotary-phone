@@ -85,7 +85,7 @@ export function TaskListEditor({
 
   const tasksToRender = watchedTasks || [];
   const activeDepTask = activeDepPopover
-    ? tasksToRender.find((t) => t.tempId === activeDepPopover.tempId)
+    ? (tasksToRender.find((t) => t.tempId === activeDepPopover.tempId) || null)
     : null;
 
   const handleDependencyUpdate = useCallback(
@@ -172,6 +172,7 @@ export function TaskListEditor({
         tempId: crypto.randomUUID(),
         taskId: defaultMaster?.id,
         name: defaultMaster?.name || "",
+        shortName: defaultMaster?.shortName,
         duration: defaultMaster?.duration || 0,
         dayOffset: 0,
         startTime: "09:00",
