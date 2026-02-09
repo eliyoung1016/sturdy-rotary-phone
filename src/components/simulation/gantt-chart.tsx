@@ -67,13 +67,13 @@ const GanttGrid = memo(function GanttGrid({
       <div className="flex border-b h-6 bg-background relative z-30">
         {days.map((day) => (
           <div key={day} className="flex" style={{ minWidth: DAY_WIDTH }}>
-            <div className="flex-1 bg-orange-100/50 text-[10px] text-orange-800 flex items-center justify-center border-r font-medium border-orange-200">
+            <div className="flex-1 bg-spot-orange-1/15 text-[10px] text-spot-orange-1 flex items-center justify-center border-r font-medium border-orange-200">
               Asia
             </div>
-            <div className="flex-1 bg-blue-100/50 text-[10px] text-blue-800 flex items-center justify-center border-r font-medium border-blue-200">
-              CET
+            <div className="flex-1 bg-spot-blue-1/15 text-[10px] text-spot-blue-1 flex items-center justify-center border-r font-medium border-blue-200">
+              EU
             </div>
-            <div className="flex-1 bg-green-100/50 text-[10px] text-green-800 flex items-center justify-center border-r font-medium border-green-200">
+            <div className="flex-1 bg-spot-green-1/15 text-[10px] text-spot-green-1 flex items-center justify-center border-r font-medium border-green-200">
               NA
             </div>
           </div>
@@ -220,6 +220,8 @@ const GanttTaskBar = memo(
     // Local state for optimistic UI updates during resize
     const [localDuration, setLocalDuration] = useState<number | null>(null);
     const localDurationRef = useRef<number | null>(null);
+    const [isResizing, setIsResizing] = useState(false);
+    const isResizingRef = useRef(false);
 
     const startMins = getAbsoluteMinutes(task.dayOffset, task.startTime);
     const leftPercent = minutesToPercent(startMins);
@@ -244,7 +246,7 @@ const GanttTaskBar = memo(
               const deltaPixels = info.offset.x;
               const deltaMinutes = (deltaPixels / chartWidth) * totalMinutes;
               const newStartMins = startMins + deltaMinutes;
-              const snappedMins = Math.round(newStartMins / 5) * 5;
+              const snappedMins = Math.round(newStartMins / 15) * 15;
               const { dayOffset, startTime } =
                 getDayAndTimeFromMinutes(snappedMins);
 
@@ -272,7 +274,7 @@ const GanttTaskBar = memo(
               const deltaPixels = info.offset.x;
               const deltaMinutes = (deltaPixels / chartWidth) * totalMinutes;
               const newStartMins = startMins + deltaMinutes;
-              const snappedMins = Math.round(newStartMins / 5) * 5;
+              const snappedMins = Math.round(newStartMins / 15) * 15;
               const { dayOffset, startTime } =
                 getDayAndTimeFromMinutes(snappedMins);
 
@@ -302,15 +304,15 @@ const GanttTaskBar = memo(
               width: `${Math.max(widthPercent, 0.5)}%`,
               backgroundColor: !readOnly && task.color ? colorStyle : undefined,
             }}
-            drag={readOnly ? false : "x"}
+            drag={readOnly || isResizing || isResizingRef.current ? false : "x"}
             dragMomentum={false}
             dragElastic={0}
             onDrag={(e, info) => {
-              if (readOnly) return;
+              if (readOnly || isResizing || isResizingRef.current) return;
               const deltaPixels = info.offset.x;
               const deltaMinutes = (deltaPixels / chartWidth) * totalMinutes;
               const newStartMins = startMins + deltaMinutes;
-              const snappedMins = Math.round(newStartMins / 5) * 5;
+              const snappedMins = Math.round(newStartMins / 15) * 15;
               const { dayOffset, startTime } =
                 getDayAndTimeFromMinutes(snappedMins);
 
@@ -338,12 +340,12 @@ const GanttTaskBar = memo(
               }
             }}
             onDragEnd={(e, info) => {
-              if (readOnly) return;
+              if (readOnly || isResizing || isResizingRef.current) return;
               setDragLabel((prev) => ({ ...prev, show: false }));
               const deltaPixels = info.offset.x;
               const deltaMinutes = (deltaPixels / chartWidth) * totalMinutes;
               const newStartMins = startMins + deltaMinutes;
-              const snappedMins = Math.round(newStartMins / 5) * 5;
+              const snappedMins = Math.round(newStartMins / 15) * 15;
               const { dayOffset, startTime } =
                 getDayAndTimeFromMinutes(snappedMins);
 
@@ -357,6 +359,9 @@ const GanttTaskBar = memo(
                 className="absolute right-0 top-0 bottom-0 w-2 cursor-ew-resize hover:bg-white/20 active:bg-white/40"
                 onPointerDown={(e) => {
                   e.stopPropagation();
+                  e.preventDefault();
+                  setIsResizing(true); // Set resizing to true
+                  isResizingRef.current = true;
                   const startX = e.clientX;
                   const startWidthPercent = widthPercent;
                   // Reset ref on start
@@ -371,7 +376,7 @@ const GanttTaskBar = memo(
                     );
                     const newDurationRaw =
                       (newWidthPercent / 100) * totalMinutes;
-                    const newDuration = Math.round(newDurationRaw / 5) * 5;
+                    const newDuration = Math.round(newDurationRaw / 15) * 15;
 
                     localDurationRef.current = newDuration;
                     setLocalDuration(newDuration);
@@ -380,6 +385,12 @@ const GanttTaskBar = memo(
                   const onUp = () => {
                     window.removeEventListener("pointermove", onMove);
                     window.removeEventListener("pointerup", onUp);
+
+                    // Add a tiny delay before allowing drag again to prevent misfiring onDragEnd
+                    setTimeout(() => {
+                      setIsResizing(false);
+                      isResizingRef.current = false;
+                    }, 50);
 
                     const finalDuration = localDurationRef.current;
                     if (finalDuration !== null) {
@@ -650,7 +661,7 @@ export function GanttChart({
           <div className="py-4 space-y-4 relative min-h-50">
             {sortedTasks.map((task) => (
               <GanttTaskBar
-                key={task.tempId}
+                key={`${task.tempId}-${task.dayOffset}-${task.startTime}-${task.duration}`}
                 task={task}
                 readOnly={readOnly}
                 minMinutes={minMinutes}

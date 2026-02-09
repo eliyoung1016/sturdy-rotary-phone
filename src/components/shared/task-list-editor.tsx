@@ -16,7 +16,7 @@ import {
 } from "@dnd-kit/sortable";
 import { Plus } from "lucide-react";
 import { useCallback, useId, useState } from "react";
-import { useFieldArray, useFormContext } from "react-hook-form";
+import { useFieldArray, useFormContext, useWatch } from "react-hook-form";
 
 import { DependencyPopover } from "@/components/shared/dependency-popover";
 import { TaskRow } from "@/components/simulation/task-row";
@@ -43,10 +43,16 @@ export function TaskListEditor({
   workingHours,
 }: TaskListEditorProps) {
   const { control, getValues } = useFormContext();
-  const { fields, append, remove, update, move, replace } = useFieldArray({
+  const { append, remove, update, move, replace } = useFieldArray({
     control,
     name,
   });
+
+  // Watch the tasks to ensure the table stays in sync with external updates (like Gantt chart moves)
+  const watchedTasks = useWatch({
+    control,
+    name,
+  }) as TaskItem[];
 
   const { updateTaskOnMove, recalculateDependentTasks } =
     useTaskDependencies(workingHours);
@@ -77,13 +83,10 @@ export function TaskListEditor({
     setActiveDepPopover(null);
   }, []);
 
-  const activeDepTaskIdx = activeDepPopover
-    ? fields.findIndex((f: any) => f.tempId === activeDepPopover.tempId)
-    : -1;
-  const activeDepTask =
-    activeDepTaskIdx !== -1
-      ? (getValues(`${name}.${activeDepTaskIdx}`) as TaskItem)
-      : null;
+  const tasksToRender = watchedTasks || [];
+  const activeDepTask = activeDepPopover
+    ? tasksToRender.find((t) => t.tempId === activeDepPopover.tempId)
+    : null;
 
   const handleDependencyUpdate = useCallback(
     (updates: Partial<TaskItem>) => {
@@ -182,7 +185,7 @@ export function TaskListEditor({
     }
   }, [onAddEmptyTask, getValues, name, masterTasks, append]);
 
-  if (readOnly && fields.length === 0) {
+  if (readOnly && tasksToRender.length === 0) {
     return (
       <div className="text-center py-8 text-muted-foreground text-sm border rounded-md bg-white shadow-sm">
         No tasks to display.
@@ -221,14 +224,15 @@ export function TaskListEditor({
             onDragEnd={handleDragEnd}
           >
             <SortableContext
-              items={fields.map((f: any) => f.tempId)}
+              items={tasksToRender.map((f: any) => f.tempId)}
               strategy={verticalListSortingStrategy}
             >
-              {fields.map((field: any, index) => (
+              {tasksToRender.map((field: any, index) => (
                 <TaskRow
-                  key={field.tempId || field.id}
+                  key={field.tempId}
                   id={field.tempId}
                   index={index}
+                  task={field}
                   controlName={name}
                   masterTasks={masterTasks}
                   readOnly={readOnly}
@@ -242,7 +246,7 @@ export function TaskListEditor({
               ))}
             </SortableContext>
           </DndContext>
-          {fields.length === 0 && (
+          {tasksToRender.length === 0 && (
             <div className="text-center py-8 text-muted-foreground text-sm">
               No tasks added. Click "Add Task" to start.
             </div>
@@ -255,7 +259,7 @@ export function TaskListEditor({
         onClose={handleClosePopovers}
         anchorEl={activeDepPopover?.anchor ?? null}
         task={activeDepTask}
-        allTasks={fields as unknown as TaskItem[]}
+        allTasks={tasksToRender}
         onUpdate={handleDependencyUpdate}
       />
     </div>

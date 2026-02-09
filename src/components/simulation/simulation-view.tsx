@@ -3,7 +3,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { Loader2, Save } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { FormProvider, useForm, useWatch } from "react-hook-form";
+import { FormProvider, useFieldArray, useForm, useWatch } from "react-hook-form";
 
 import { TaskListEditor } from "@/components/shared/task-list-editor";
 import { Button } from "@/components/ui/button";
@@ -36,6 +36,36 @@ interface SimulationViewProps {
 interface SimulationFormState {
   currentTasks: TaskItem[];
   targetTasks: TaskItem[];
+}
+
+// Separate component to isolate Gantt Chart re-renders and debouncing
+function GanttChartWrapper({
+  name,
+  onTaskUpdate,
+  officeStart,
+  officeEnd,
+}: {
+  name: string;
+  onTaskUpdate: (
+    tempId: string,
+    newDayOffset: number,
+    newStartTime: string,
+    newDuration: number,
+  ) => void;
+  officeStart?: string;
+  officeEnd?: string;
+}) {
+  const tasks = useWatch({ name });
+  const debouncedTasks = useDebounce(tasks, 200);
+
+  return (
+    <GanttChart
+      tasks={debouncedTasks || []}
+      onTaskUpdate={onTaskUpdate}
+      officeStart={officeStart}
+      officeEnd={officeEnd}
+    />
+  );
 }
 
 export function SimulationView({
@@ -86,9 +116,11 @@ export function SimulationView({
   // Re-sync if fund prop changes
   useEffect(() => {
     if (!simulationId) {
+      const current = mapTasks(fund.currentTemplate?.templateTasks || []);
+      const target = mapTasks(fund.targetTemplate?.templateTasks || []);
       form.reset({
-        currentTasks: mapTasks(fund.currentTemplate?.templateTasks || []),
-        targetTasks: mapTasks(fund.targetTemplate?.templateTasks || []),
+        currentTasks: current,
+        targetTasks: target,
       });
       setMode("current");
     }
@@ -104,18 +136,8 @@ export function SimulationView({
 
   const { updateTaskOnMove } = useTaskDependencies(workingHours);
 
-  // Watch tasks for Gantt Chart
-  const currentTasks = useWatch({
-    control: form.control,
-    name: "currentTasks",
-  });
-  const targetTasks = useWatch({ control: form.control, name: "targetTasks" });
-  const activeTasks = mode === "current" ? currentTasks : targetTasks;
   const activeTasksFieldName =
     mode === "current" ? "currentTasks" : "targetTasks";
-
-  // Debounce the tasks for the Gantt Chart to avoid lag
-  const debouncedActiveTasks = useDebounce(activeTasks, 200);
 
   const handleTaskUpdate = (
     tempId: string,
@@ -123,31 +145,38 @@ export function SimulationView({
     newStartTime: string,
     newDuration: number,
   ) => {
-    const tasks = [...activeTasks];
+    // Get latest tasks directly from form to avoid stale closure issues
+    const tasks = [...form.getValues(activeTasksFieldName)];
     const taskIndex = tasks.findIndex((t) => t.tempId === tempId);
     if (taskIndex === -1) return;
 
-    // Use shared logic for update, which handles recursion, working hours, and constraints
-    // Note: updating duration is same as "moving" if we only change duration property first?
-    // updateTaskOnMove takes (index, day, time, list).
-    // If duration changed, we should probably update it in the list first, then call updateTaskOnMove?
-    // Actually updateTaskOnMove logic in hook only looks at duration for working hours calculation of self
-    // and subsequent children.
+    const task = tasks[taskIndex];
+    const isResizing =
+      task.dayOffset === newDayOffset &&
+      task.startTime === newStartTime &&
+      task.duration !== newDuration;
 
-    // If duration changed, we must update it first.
+    // Update the specific task's duration first
     tasks[taskIndex] = {
-      ...tasks[taskIndex],
+      ...task,
       duration: newDuration,
     };
 
+    // Use shared logic for update, which handles recursion, working hours, and constraints
     const updatedTasks = updateTaskOnMove(
       taskIndex,
       newDayOffset,
       newStartTime,
       tasks,
+      isResizing,
     );
 
-    form.setValue(activeTasksFieldName, updatedTasks);
+    // Update the form state - setValue with shouldDirty: true will trigger watchers to refresh
+    form.setValue(activeTasksFieldName, updatedTasks, {
+      shouldDirty: true,
+      shouldTouch: true,
+      shouldValidate: true,
+    });
   };
 
   return (
@@ -232,8 +261,8 @@ export function SimulationView({
                 <CardTitle>Timeline Visualization</CardTitle>
               </CardHeader>
               <CardContent>
-                <GanttChart
-                  tasks={debouncedActiveTasks || []}
+                <GanttChartWrapper
+                  name={activeTasksFieldName}
                   onTaskUpdate={handleTaskUpdate}
                   officeStart={fund.officeStart}
                   officeEnd={fund.officeEnd}

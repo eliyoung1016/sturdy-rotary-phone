@@ -27,6 +27,7 @@ export function useTaskDependencies(workingHours?: WorkingHours) {
       dayOffset: number,
       startTime: string,
       duration: number,
+      isResizing: boolean = false,
     ): { dayOffset: number; startTime: string } => {
       if (!workingHours) return { dayOffset, startTime };
 
@@ -46,14 +47,12 @@ export function useTaskDependencies(workingHours?: WorkingHours) {
       }
 
       // 3. New Rule: If task fits but extends beyond office end, push to next day
-      // Calculate end time of the task
-      const taskEndMins = timeMins + duration;
-
-      // If the task ends after the office end, it must be pushed to the next day
-      // Note: This logic moves the ENTIRE task to the next day if it doesn't fit.
-      // Assuming we want to start at the beginning of the next working day.
-      if (taskEndMins > endMins) {
-        return { dayOffset: dayOffset + 1, startTime: start };
+      // But SKIP this if we are resizing, as we don't want the start time to jump
+      if (!isResizing) {
+        const taskEndMins = timeMins + duration;
+        if (taskEndMins > endMins) {
+          return { dayOffset: dayOffset + 1, startTime: start };
+        }
       }
 
       return { dayOffset, startTime };
@@ -182,6 +181,7 @@ export function useTaskDependencies(workingHours?: WorkingHours) {
       newDayOffset: number,
       newStartTime: string,
       currentTasks: T[],
+      isResizing: boolean = false,
     ): T[] => {
       const task = currentTasks[taskIndex];
       if (!task) return currentTasks;
@@ -189,7 +189,7 @@ export function useTaskDependencies(workingHours?: WorkingHours) {
       const newStartTotal = getAbsoluteMinutes(newDayOffset, newStartTime);
 
       // 1. Check parent constraint
-      const parentId = task.dependsOnTempId || task.taskId?.toString();
+      const parentId = task.dependsOnTempId || task.dependsOnId?.toString();
       if (parentId) {
         const parentTask = currentTasks.find((t) => t.tempId === parentId);
         if (parentTask) {
@@ -251,6 +251,7 @@ export function useTaskDependencies(workingHours?: WorkingHours) {
           currentTasks[taskIndex].dayOffset,
           currentTasks[taskIndex].startTime,
           currentTasks[taskIndex].duration,
+          isResizing,
         );
         currentTasks[taskIndex] = {
           ...currentTasks[taskIndex],

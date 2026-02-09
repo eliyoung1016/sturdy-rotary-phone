@@ -27,6 +27,7 @@ import type { MasterTask, TaskItem } from "@/types/simulation";
 interface TaskRowProps {
   id: string;
   index: number;
+  task: TaskItem;
   controlName: string;
   masterTasks: MasterTask[];
   readOnly: boolean;
@@ -128,6 +129,7 @@ function DependencyLabel({
 export const TaskRow = memo(function TaskRow({
   id,
   index,
+  task,
   controlName,
   masterTasks,
   readOnly,
@@ -138,8 +140,8 @@ export const TaskRow = memo(function TaskRow({
   recalculateDependentTasks,
   onOpenDependency,
 }: TaskRowProps) {
-  const { register, setValue, watch, getValues } = useFormContext();
-  const taskValues = watch(`${controlName}.${index}`) as TaskItem;
+  const { register, setValue, getValues } = useFormContext();
+  const taskValues = task;
   const focusValueRef = useRef<string>("");
 
   // Only run this when dependencies change
@@ -338,6 +340,7 @@ export const TaskRow = memo(function TaskRow({
               <Input
                 disabled={readOnly}
                 type="time"
+                step="900"
                 className="h-9 text-xs px-1"
                 value={taskValues.startTime || ""}
                 onFocus={(e) => {
@@ -348,6 +351,12 @@ export const TaskRow = memo(function TaskRow({
                   const newValue = e.target.value;
                   if (newValue === focusValueRef.current) return;
 
+                  // Snap to 15 mins if browser doesn't enforce step
+                  const [hours, minutes] = newValue.split(":").map(Number);
+                  const snappedMinutes = Math.round(minutes / 15) * 15;
+                  const finalMinutes = snappedMinutes === 60 ? 45 : snappedMinutes; // Simplified boundary check
+                  const finalValue = `${hours.toString().padStart(2, "0")}:${finalMinutes.toString().padStart(2, "0")}`;
+
                   const currentTasks = getValues(controlName).map((t: any) => ({
                     ...t,
                   }));
@@ -355,11 +364,11 @@ export const TaskRow = memo(function TaskRow({
                   const updatedTasks = updateTaskOnMove(
                     index,
                     taskValues.dayOffset,
-                    newValue,
+                    finalValue,
                     currentTasks,
                   );
                   replace(updatedTasks);
-                  focusValueRef.current = newValue;
+                  focusValueRef.current = finalValue;
                 }}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
@@ -371,6 +380,7 @@ export const TaskRow = memo(function TaskRow({
               <Input
                 type="number"
                 disabled={readOnly || taskValues.type === "CUTOFF"}
+                step="15"
                 className="h-9 text-xs px-1"
                 value={taskValues.duration ?? 0}
                 onFocus={(e) => {
@@ -380,7 +390,8 @@ export const TaskRow = memo(function TaskRow({
                   valueAsNumber: true,
                 })}
                 onBlur={(e) => {
-                  const newDuration = Number(e.target.value);
+                  const rawDuration = Number(e.target.value);
+                  const newDuration = Math.round(rawDuration / 15) * 15;
                   if (Number(focusValueRef.current) === newDuration) return;
 
                   const currentTasks = getValues(controlName).map((t: any) => ({
