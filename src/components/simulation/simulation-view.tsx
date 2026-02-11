@@ -95,6 +95,7 @@ export function SimulationView({
       dependsOnTempId: t.dependsOnTempId || t.dependsOnId?.toString() || null,
       dependsOnId: t.dependsOnId,
       taskId: t.taskId,
+      correspondingTaskId: t.correspondingTaskId || t.masterTask?.correspondingTaskId || null,
       saveToMaster: false,
       isCashConfirmed: t.isCashConfirmed,
       requiresWorkingHours: t.requiresWorkingHours,

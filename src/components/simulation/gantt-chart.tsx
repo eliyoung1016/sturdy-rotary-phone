@@ -357,22 +357,21 @@ const GanttTaskBar = memo(
               const charWidth = 7; // Estimate for text-xs font-semibold
               const padding = 16; // 8px each side
               const fullNameWidth = task.name.length * charWidth + padding;
-              
-              // Prioritize database shortName if it exists, otherwise use fallback logic
-              const shortName =
-                task.shortName || 
-                (task.name.includes(" ") 
-                  ? task.name.split(" ").map(w => w[0]).join("").toUpperCase()
-                  : task.name.substring(0, 3).toUpperCase());
-              
-              const shortNameWidth = shortName.length * charWidth + padding;
 
+              // 1. If full name fits, show it inside
               if (availableWidth >= fullNameWidth) {
                 return <span className="truncate w-full">{task.name}</span>;
               }
-              if (availableWidth >= shortNameWidth) {
-                return <span className="truncate w-full">{shortName}</span>;
+
+              // 2. If task has a short name and it fits, show it inside
+              if (task.shortName) {
+                const shortNameWidth = task.shortName.length * charWidth + padding;
+                if (availableWidth >= shortNameWidth) {
+                  return <span className="truncate w-full">{task.shortName}</span>;
+                }
               }
+
+              // 3. Otherwise (no short name, or neither fits), show full name outside
               return (
                 <span
                   className="absolute left-full ml-2 text-primary font-bold whitespace-nowrap drop-shadow-sm"

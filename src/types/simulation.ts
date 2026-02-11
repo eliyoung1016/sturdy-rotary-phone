@@ -24,6 +24,7 @@ export interface TaskItem {
   dependencyDelay?: number;
   dependsOnId?: number; // Legacy/Database ID reference
   taskId?: number;
+  correspondingTaskId?: number | null;
   saveToMaster?: boolean;
   isCashConfirmed?: boolean;
   requiresWorkingHours?: boolean;
