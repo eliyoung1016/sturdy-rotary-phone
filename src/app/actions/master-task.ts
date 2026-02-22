@@ -2,18 +2,26 @@
 
 import { revalidatePath } from "next/cache";
 
+import type { MasterTask } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import {
   type MasterTaskInput,
   masterTaskSchema,
 } from "@/lib/schemas/master-task";
+import type { ActionResponse } from "@/types/actions";
 
-export async function createMasterTask(data: MasterTaskInput) {
+export type MasterTaskWithRelations = MasterTask & {
+  correspondingTask: MasterTask | null;
+  correspondingTaskOf: MasterTask | null;
+};
+
+export async function createMasterTask(data: MasterTaskInput): Promise<ActionResponse<void>> {
   const result = masterTaskSchema.safeParse(data);
 
   if (!result.success) {
     return {
       success: false,
+      error: "Validation error",
       errors: result.error.flatten().fieldErrors,
     };
   }
@@ -102,7 +110,7 @@ export async function createMasterTask(data: MasterTaskInput) {
     console.error("Failed to create master task:", error);
     return {
       success: false,
-      message: "Database Error: Failed to create master task.",
+      error: "Database Error: Failed to create master task.",
     };
   }
 
@@ -110,7 +118,7 @@ export async function createMasterTask(data: MasterTaskInput) {
   return { success: true };
 }
 
-export async function getMasterTasks() {
+export async function getMasterTasks(): Promise<ActionResponse<MasterTaskWithRelations[]>> {
   try {
     const tasks = await prisma.masterTask.findMany({
       orderBy: { name: "asc" },
@@ -126,7 +134,7 @@ export async function getMasterTasks() {
   }
 }
 
-export async function getMasterTask(id: number) {
+export async function getMasterTask(id: number): Promise<ActionResponse<MasterTaskWithRelations>> {
   try {
     const task = await prisma.masterTask.findUnique({
       where: { id },
@@ -143,12 +151,13 @@ export async function getMasterTask(id: number) {
   }
 }
 
-export async function updateMasterTask(id: number, data: MasterTaskInput) {
+export async function updateMasterTask(id: number, data: MasterTaskInput): Promise<ActionResponse<void>> {
   const result = masterTaskSchema.safeParse(data);
 
   if (!result.success) {
     return {
       success: false,
+      error: "Validation error",
       errors: result.error.flatten().fieldErrors,
     };
   }
@@ -258,7 +267,7 @@ export async function updateMasterTask(id: number, data: MasterTaskInput) {
     console.error("Failed to update master task:", error);
     return {
       success: false,
-      message: "Database Error: Failed to update master task.",
+      error: "Database Error: Failed to update master task.",
     };
   }
 

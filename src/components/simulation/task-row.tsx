@@ -2,12 +2,7 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Clock, DollarSign, GripVertical, Trash2 } from "lucide-react";
 import { memo, useRef } from "react";
-import {
-  type UseFieldArrayRemove,
-  type UseFieldArrayUpdate,
-  useFormContext,
-  useWatch,
-} from "react-hook-form";
+import { useSimulationStore } from "@/store/simulation-store";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -27,23 +22,14 @@ import type { MasterTask, TaskItem } from "@/types/simulation";
 interface TaskRowProps {
   id: string;
   index: number;
+}
+
+interface TaskRowProps {
+  id: string;
+  index: number;
   task: TaskItem;
-  controlName: string;
   masterTasks: MasterTask[];
   readOnly: boolean;
-  update: UseFieldArrayUpdate<any, any>;
-  remove: UseFieldArrayRemove;
-  replace: (items: TaskItem[]) => void;
-  updateTaskOnMove: (
-    index: number,
-    dayOffset: number,
-    startTime: string,
-    currentTasks: TaskItem[],
-  ) => TaskItem[];
-  recalculateDependentTasks: (
-    tempId: string,
-    currentTasks: TaskItem[],
-  ) => TaskItem[];
   onOpenDependency: (tempId: string, anchor: HTMLElement) => void;
 }
 
@@ -87,29 +73,15 @@ function SortableTaskItem({
 // Isolated component to render dependency label without re-rendering the whole row
 // when other tasks change.
 function DependencyLabel({
-  controlName,
   dependsOnTempId,
   dependencyType,
   dependencyDelay,
 }: {
-  controlName: string;
   dependsOnTempId?: string | null;
   dependencyType?: string;
   dependencyDelay?: number;
 }) {
-  // We need to 'watch' the list to ensure we update when parent name changes?
-  // If we just use getValues(), it won't auto-update when parent name changes.
-  // But if we use watch(), we trigger re-renders.
-  // The goal is to ONLY re-render this label, not the whole Row inputs.
-
-  // Actually, we can use useWatch for the specific parent index if we knew it.
-  // But we don't know the index easily without searching.
-  // Searching requires the list.
-
-  // Let's watch the whole list HERE in this tiny component.
-  // Rerendering this tiny span is cheap.
-  // Rerendering the whole TaskRow (with 10 inputs) is expensive.
-  const allTasks = useWatch({ name: controlName }) as TaskItem[];
+  const allTasks = useSimulationStore(state => state._getActiveTasks());
 
   if (!dependsOnTempId) return <>None</>;
 
@@ -130,17 +102,11 @@ export const TaskRow = memo(function TaskRow({
   id,
   index,
   task,
-  controlName,
   masterTasks,
   readOnly,
-  update,
-  remove,
-  replace,
-  updateTaskOnMove,
-  recalculateDependentTasks,
   onOpenDependency,
 }: TaskRowProps) {
-  const { register, setValue, getValues } = useFormContext();
+  const store = useSimulationStore();
   const taskValues = task;
   const focusValueRef = useRef<string>("");
 
@@ -190,10 +156,11 @@ export const TaskRow = memo(function TaskRow({
                   taskValues.taskId ? taskValues.taskId.toString() : "custom"
                 }
                 onValueChange={(val) => {
-                  const currentVal = getValues(`${controlName}.${index}`);
+                  const currentTasks = [...store._getActiveTasks()];
+
                   if (val === "custom") {
-                    update(index, {
-                      ...currentVal,
+                    currentTasks[index] = {
+                      ...currentTasks[index],
                       taskId: undefined,
                       name: "",
                       shortName: undefined,
@@ -203,11 +170,11 @@ export const TaskRow = memo(function TaskRow({
                       color: "primary",
                       isCashConfirmed: false,
                       requiresWorkingHours: false,
-                    });
+                    };
                   } else {
                     const mt = masterTasks.find((t) => t.id === Number(val));
-                    update(index, {
-                      ...currentVal,
+                    currentTasks[index] = {
+                      ...currentTasks[index],
                       taskId: Number(val),
                       name: mt?.name || "",
                       shortName: mt?.shortName,
@@ -217,8 +184,9 @@ export const TaskRow = memo(function TaskRow({
                       isCashConfirmed: mt?.isCashConfirmed || false,
                       requiresWorkingHours: mt?.requiresWorkingHours || false,
                       saveToMaster: false,
-                    });
+                    };
                   }
+                  store.setTasks(store.mode, currentTasks);
                 }}
               >
                 <SelectTrigger className="h-7 text-xs border-transparent hover:border-input focus:border-input bg-transparent px-2">
@@ -240,7 +208,12 @@ export const TaskRow = memo(function TaskRow({
                     disabled={readOnly}
                     placeholder="Task Name"
                     className="h-9 text-xs"
-                    {...register(`${controlName}.${index}.name`)}
+                    value={taskValues.name || ""}
+                    onChange={(e) => {
+                      const currentTasks = [...store._getActiveTasks()];
+                      currentTasks[index] = { ...currentTasks[index], name: e.target.value };
+                      store.setTasks(store.mode, currentTasks);
+                    }}
                   />
                   <div className="flex items-center gap-2">
                     <Checkbox
@@ -249,10 +222,9 @@ export const TaskRow = memo(function TaskRow({
                       className="h-3.5 w-3.5"
                       checked={!!taskValues.saveToMaster}
                       onCheckedChange={(checked) => {
-                        setValue(
-                          `${controlName}.${index}.saveToMaster`,
-                          !!checked,
-                        );
+                        const currentTasks = [...store._getActiveTasks()];
+                        currentTasks[index] = { ...currentTasks[index], saveToMaster: !!checked };
+                        store.setTasks(store.mode, currentTasks);
                       }}
                     />
                     <Label
@@ -264,10 +236,7 @@ export const TaskRow = memo(function TaskRow({
                   </div>
                 </div>
               ) : (
-                <input
-                  type="hidden"
-                  {...register(`${controlName}.${index}.name`)}
-                />
+                <div />
               )}
             </div>
 
@@ -280,7 +249,7 @@ export const TaskRow = memo(function TaskRow({
                   const newType = val as "PROCESS" | "CUTOFF";
                   const newDuration =
                     newType === "CUTOFF" ? 0 : taskValues.duration;
-                  const currentTasks = [...getValues(controlName)];
+                  const currentTasks = [...store._getActiveTasks()];
 
                   currentTasks[index] = {
                     ...currentTasks[index],
@@ -288,14 +257,9 @@ export const TaskRow = memo(function TaskRow({
                     duration: newDuration,
                   };
 
+                  store.setTasks(store.mode, currentTasks);
                   if (newDuration !== taskValues.duration) {
-                    const updatedTasks = recalculateDependentTasks(
-                      currentTasks[index].tempId,
-                      currentTasks,
-                    );
-                    setValue(controlName, updatedTasks);
-                  } else {
-                    setValue(controlName, currentTasks);
+                    store.updateTaskDuration(currentTasks[index].tempId, newDuration);
                   }
                 }}
               >
@@ -316,14 +280,7 @@ export const TaskRow = memo(function TaskRow({
                 value={taskValues.dayOffset.toString()}
                 onValueChange={(val) => {
                   const newOffset = Number(val);
-                  const currentTasks = [...getValues(controlName)];
-                  const updatedTasks = updateTaskOnMove(
-                    index,
-                    newOffset,
-                    taskValues.startTime || "09:00",
-                    currentTasks,
-                  );
-                  setValue(controlName, updatedTasks);
+                  store.moveTask(taskValues.tempId, newOffset, taskValues.startTime || "09:00");
                 }}
               >
                 <SelectTrigger className="h-9 text-xs px-1">
@@ -348,7 +305,11 @@ export const TaskRow = memo(function TaskRow({
                 onFocus={(e) => {
                   focusValueRef.current = e.target.value;
                 }}
-                {...register(`${controlName}.${index}.startTime`)}
+                onChange={(e) => {
+                  const currentTasks = [...store._getActiveTasks()];
+                  currentTasks[index] = { ...currentTasks[index], startTime: e.target.value };
+                  store.setTasks(store.mode, currentTasks);
+                }}
                 onBlur={(e) => {
                   const newValue = e.target.value;
                   if (newValue === focusValueRef.current) return;
@@ -359,17 +320,7 @@ export const TaskRow = memo(function TaskRow({
                   const finalMinutes = snappedMinutes === 60 ? 45 : snappedMinutes; // Simplified boundary check
                   const finalValue = `${hours.toString().padStart(2, "0")}:${finalMinutes.toString().padStart(2, "0")}`;
 
-                  const currentTasks = getValues(controlName).map((t: any) => ({
-                    ...t,
-                  }));
-
-                  const updatedTasks = updateTaskOnMove(
-                    index,
-                    taskValues.dayOffset,
-                    finalValue,
-                    currentTasks,
-                  );
-                  replace(updatedTasks);
+                  store.moveTask(taskValues.tempId, taskValues.dayOffset, finalValue);
                   focusValueRef.current = finalValue;
                 }}
                 onKeyDown={(e) => {
@@ -388,25 +339,17 @@ export const TaskRow = memo(function TaskRow({
                 onFocus={(e) => {
                   focusValueRef.current = e.target.value;
                 }}
-                {...register(`${controlName}.${index}.duration`, {
-                  valueAsNumber: true,
-                })}
+                onChange={(e) => {
+                  const currentTasks = [...store._getActiveTasks()];
+                  currentTasks[index] = { ...currentTasks[index], duration: Number(e.target.value) };
+                  store.setTasks(store.mode, currentTasks);
+                }}
                 onBlur={(e) => {
                   const rawDuration = Number(e.target.value);
                   const newDuration = Math.round(rawDuration / 15) * 15;
                   if (Number(focusValueRef.current) === newDuration) return;
 
-                  const currentTasks = getValues(controlName).map((t: any) => ({
-                    ...t,
-                  }));
-
-                  currentTasks[index].duration = newDuration;
-
-                  const updatedTasks = recalculateDependentTasks(
-                    currentTasks[index].tempId,
-                    currentTasks,
-                  );
-                  replace(updatedTasks);
+                  store.updateTaskDuration(taskValues.tempId, newDuration);
                   focusValueRef.current = newDuration.toString();
                 }}
                 onKeyDown={(e) => {
@@ -434,7 +377,6 @@ export const TaskRow = memo(function TaskRow({
               >
                 <span className="truncate">
                   <DependencyLabel
-                    controlName={controlName}
                     dependsOnTempId={taskValues.dependsOnTempId}
                     dependencyType={taskValues.dependencyType}
                     dependencyDelay={taskValues.dependencyDelay}
@@ -471,7 +413,11 @@ export const TaskRow = memo(function TaskRow({
                 size="icon"
                 className="h-7 w-7 text-muted-foreground hover:text-destructive"
                 disabled={readOnly}
-                onClick={() => remove(index)}
+                onClick={() => {
+                  const currentTasks = [...store._getActiveTasks()];
+                  currentTasks.splice(index, 1);
+                  store.setTasks(store.mode, currentTasks);
+                }}
                 title="Remove Task"
               >
                 <Trash2 className="h-4 w-4" />

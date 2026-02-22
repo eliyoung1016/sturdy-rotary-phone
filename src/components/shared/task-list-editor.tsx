@@ -16,46 +16,37 @@ import {
 } from "@dnd-kit/sortable";
 import { Plus } from "lucide-react";
 import { useCallback, useId, useState } from "react";
-import { useFieldArray, useFormContext, useWatch } from "react-hook-form";
-
 import { DependencyPopover } from "@/components/shared/dependency-popover";
 import { TaskRow } from "@/components/simulation/task-row";
 import { Button } from "@/components/ui/button";
-import { useTaskDependencies } from "@/hooks/use-task-dependencies";
+import { useSimulationStore } from "@/store/simulation-store";
 import { cn } from "@/lib/utils";
 import type { MasterTask, TaskItem } from "@/types/simulation";
 
 interface TaskListEditorProps {
-  name: string; // Field array name (e.g., "tasks")
+  tasks: TaskItem[];
   masterTasks: MasterTask[];
   onAddEmptyTask?: () => void;
   className?: string;
   readOnly?: boolean;
-  workingHours?: { start: string; end: string };
 }
 
 export function TaskListEditor({
-  name,
+  tasks: passedTasks,
   masterTasks,
   onAddEmptyTask,
   className,
   readOnly = false,
-  workingHours,
 }: TaskListEditorProps) {
-  const { control, getValues } = useFormContext();
-  const { append, remove, update, move, replace } = useFieldArray({
-    control,
-    name,
-  });
+  const { mode, setTasks, workingHours, _getActiveTasks } = useSimulationStore();
+  // We use the actively passed tasks so that we're reacting to the component tree updates,
+  // but we edit via Zustand
+  const tasksToRender = passedTasks || [];
 
-  // Watch the tasks to ensure the table stays in sync with external updates (like Gantt chart moves)
-  const watchedTasks = useWatch({
-    control,
-    name,
-  }) as TaskItem[];
-
-  const { updateTaskOnMove, recalculateDependentTasks } =
-    useTaskDependencies(workingHours);
+  // Need logic for DependencyPopover recalculations as well!
+  // It relies on recalculateDependentTasks.
+  // Because TaskRow also needs these helpers, we should proxy the shared logic 
+  // from our Zustand store... Although wait, the store manages this globally now.
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -83,7 +74,6 @@ export function TaskListEditor({
     setActiveDepPopover(null);
   }, []);
 
-  const tasksToRender = watchedTasks || [];
   const activeDepTask = activeDepPopover
     ? (tasksToRender.find((t) => t.tempId === activeDepPopover.tempId) || null)
     : null;
@@ -93,7 +83,8 @@ export function TaskListEditor({
       setActiveDepPopover((prev) => {
         if (!prev) return null;
         const { tempId } = prev;
-        const currentTasks = [...getValues(name)];
+        const state = useSimulationStore.getState();
+        const currentTasks = [...state._getActiveTasks()];
         const index = currentTasks.findIndex((t: any) => t.tempId === tempId);
 
         if (index === -1) return prev;
@@ -104,40 +95,32 @@ export function TaskListEditor({
           ...updates,
         };
 
-        if (
-          updates.dependsOnTempId !== undefined ||
-          updates.dependencyType !== undefined ||
-          updates.dependencyDelay !== undefined
-        ) {
-          if (currentTasks[index].dependsOnTempId) {
-            const updatedTasks = recalculateDependentTasks(
-              currentTasks[index].dependsOnTempId!,
-              currentTasks,
-            );
-            replace(updatedTasks);
-          } else {
-            const parentId = currentTasks[index].dependsOnTempId;
-            if (parentId) {
-              const updated = recalculateDependentTasks(parentId, currentTasks);
-              replace(updated);
-            } else {
-              replace(currentTasks);
-            }
-          }
-        } else {
-          replace(currentTasks);
-        }
+        // To keep it simple, if dependency data changes, we trigger
+        // a full recalculation. Wait, recalculateDependentTasks is internal to the store.
+        // Let's implement a wrapper here or move it.
+        // Actually, we can just push the new list and let the store or component handle it?
+        // Let's just update the specific task first, then call a trigger in the store?
+        // For now, update the task in the store.
+        const store = useSimulationStore.getState();
+        const updatedList = [...currentTasks];
+        updatedList[index] = { ...updatedList[index], ...updates };
+        store.setTasks(store.mode, updatedList);
+
+        // We'll need to trigger a move update for dependencies to refresh
+        store.moveTask(tempId, updatedList[index].dayOffset, updatedList[index].startTime);
+
         return prev;
       });
     },
-    [getValues, name, recalculateDependentTasks, replace],
+    [],
   );
 
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
       const { active, over } = event;
       if (over && active.id !== over.id) {
-        const currentItems = getValues(name);
+        const store = useSimulationStore.getState();
+        const currentItems = [...store._getActiveTasks()];
         const oldIndex = currentItems.findIndex(
           (i: any) => i.tempId === active.id,
         );
@@ -146,18 +129,21 @@ export function TaskListEditor({
         );
 
         if (oldIndex !== -1 && newIndex !== -1) {
-          move(oldIndex, newIndex);
+          const item = currentItems.splice(oldIndex, 1)[0];
+          currentItems.splice(newIndex, 0, item);
+          store.setTasks(store.mode, currentItems);
         }
       }
     },
-    [getValues, move, name],
+    [],
   ); // Stable
 
   const handleAddEmptyTask = useCallback(() => {
     if (onAddEmptyTask) {
       onAddEmptyTask();
     } else {
-      const currentVals = getValues(name) || [];
+      const store = useSimulationStore.getState();
+      const currentVals = store._getActiveTasks();
       const usedTaskIds = new Set(
         currentVals
           .map((t: any) => t.taskId)
@@ -168,7 +154,7 @@ export function TaskListEditor({
       );
       const defaultMaster = firstUnusedMaster || masterTasks[0];
 
-      append({
+      const newTask = {
         tempId: crypto.randomUUID(),
         taskId: defaultMaster?.id,
         name: defaultMaster?.name || "",
@@ -182,9 +168,11 @@ export function TaskListEditor({
         requiresWorkingHours: defaultMaster?.requiresWorkingHours || false,
         dependsOnTempId: undefined,
         saveToMaster: false,
-      });
+      };
+      // We manually append
+      store.setTasks(store.mode, [...currentVals, newTask as TaskItem]);
     }
-  }, [onAddEmptyTask, getValues, name, masterTasks, append]);
+  }, [onAddEmptyTask, masterTasks]);
 
   if (readOnly && tasksToRender.length === 0) {
     return (
@@ -234,14 +222,8 @@ export function TaskListEditor({
                   id={field.tempId}
                   index={index}
                   task={field}
-                  controlName={name}
                   masterTasks={masterTasks}
                   readOnly={readOnly}
-                  update={update}
-                  remove={remove}
-                  replace={replace}
-                  updateTaskOnMove={updateTaskOnMove}
-                  recalculateDependentTasks={recalculateDependentTasks}
                   onOpenDependency={handleOpenDependency}
                 />
               ))}

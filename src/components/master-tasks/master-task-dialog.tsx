@@ -7,19 +7,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import type { MasterTaskInput } from "@/lib/schemas/master-task";
+import type { MasterTaskWithRelations } from "@/app/actions/master-task";
 import { MasterTaskForm } from "./master-task-form";
 
 interface MasterTaskDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  initialData?: MasterTaskInput & { id?: number };
+  initialData?: MasterTaskWithRelations;
   mode: "create" | "edit";
-  tasks?: (MasterTaskInput & {
-    id: number;
-    correspondingTaskId?: number | null;
-    correspondingTaskOf?: { id: number } | null;
-  })[];
+  tasks?: MasterTaskWithRelations[];
 }
 
 export function MasterTaskDialog({

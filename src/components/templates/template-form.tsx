@@ -130,7 +130,10 @@ export function TemplateForm({ initialData, templateId }: TemplateFormProps) {
           </CardContent>
         </Card>
 
-        <TaskListEditor name="tasks" masterTasks={masterTasks} />
+        <TaskListEditor
+          tasks={form.watch("tasks") as any}
+          masterTasks={masterTasks}
+        />
 
         <div className="flex justify-end gap-2">
           <Button

@@ -14,21 +14,15 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { TASK_COLORS } from "@/lib/constants/colors";
-import type { MasterTaskInput } from "@/lib/schemas/master-task";
-
-interface MasterTask extends MasterTaskInput {
-  id: number;
-  correspondingTask: { id: number; name: string } | null;
-  correspondingTaskOf: { id: number; name: string } | null;
-}
+import type { MasterTaskWithRelations } from "@/app/actions/master-task";
 
 interface MasterTaskListProps {
-  tasks: MasterTask[] | undefined;
+  tasks: MasterTaskWithRelations[] | undefined;
 }
 
 export function MasterTaskList({ tasks }: MasterTaskListProps) {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [editingTask, setEditingTask] = useState<MasterTask | null>(null);
+  const [editingTask, setEditingTask] = useState<MasterTaskWithRelations | null>(null);
 
   // Helper to get color value for display
   const getColorValue = (colorName: string | undefined): string => {
@@ -92,7 +86,7 @@ export function MasterTaskList({ tasks }: MasterTaskListProps) {
                       <div
                         className="w-4 h-4 rounded-full border border-gray-200"
                         style={{
-                          background: getColorValue(task.color),
+                          background: getColorValue(task.color ?? undefined),
                         }}
                         title={`Color: ${task.color || "primary"}`}
                       />

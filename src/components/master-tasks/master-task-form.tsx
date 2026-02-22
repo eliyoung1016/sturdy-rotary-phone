@@ -24,17 +24,12 @@ import {
   masterTaskSchema,
 } from "@/lib/schemas/master-task";
 
+import type { MasterTaskWithRelations } from "@/app/actions/master-task";
+
 interface MasterTaskFormProps {
-  initialData?: MasterTaskInput & {
-    id?: number;
-    correspondingTaskOf?: { id: number } | null;
-  };
+  initialData?: MasterTaskWithRelations;
   mode: "create" | "edit";
-  tasks?: (MasterTaskInput & {
-    id: number;
-    correspondingTaskId?: number | null;
-    correspondingTaskOf?: { id: number } | null;
-  })[];
+  tasks?: MasterTaskWithRelations[];
   onSuccess?: () => void;
   onCancel?: () => void;
 }
@@ -61,7 +56,7 @@ export function MasterTaskForm({
     defaultValues: {
       name: initialData?.name || "",
       description: initialData?.description || "",
-      type: initialData?.type || "PROCESS",
+      type: (initialData?.type as "PROCESS" | "CUTOFF") || "PROCESS",
       duration: initialData?.duration ?? 30,
       color: initialData?.color || "primary",
       isCashConfirmed: initialData?.isCashConfirmed || false,
