@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { deleteTemplate } from "@/app/actions/template"; // Verify path
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -47,11 +47,10 @@ export function TemplateList({ templates }: TemplateListProps) {
           <h1 className="text-3xl font-bold tracking-tight">Templates</h1>
           <p className="text-muted-foreground">Manage your templates.</p>
         </div>
-        <Button asChild>
-          <a href="/templates/new">
-            <Plus className="mr-2 h-4 w-4" /> New Template
-          </a>
-        </Button>
+
+        <Link href="/templates/new" className={buttonVariants({ variant: "default" })}>
+          <Plus className="mr-2 h-4 w-4" /> New Template
+        </Link>
       </div>
 
       <div className="border rounded-md">
@@ -71,16 +70,12 @@ export function TemplateList({ templates }: TemplateListProps) {
                   <TableCell className="font-medium">{template.name}</TableCell>
                   <TableCell>{template.description}</TableCell>
                   <TableCell className="text-right flex justify-end gap-2">
-                    <Button variant="ghost" size="icon" asChild>
-                      <Link href={`/templates/${template.id}`}>
-                        <Eye className="h-4 w-4" />
-                      </Link>
-                    </Button>
-                    <Button variant="ghost" size="icon" asChild>
-                      <Link href={`/templates/${template.id}/edit`}>
-                        <Pencil className="h-4 w-4" />
-                      </Link>
-                    </Button>
+                    <Link href={`/templates/${template.id}`} className={buttonVariants({ variant: "ghost", size: "icon" })}>
+                      <Eye className="h-4 w-4" />
+                    </Link>
+                    <Link href={`/templates/${template.id}/edit`} className={buttonVariants({ variant: "ghost", size: "icon" })}>
+                      <Pencil className="h-4 w-4" />
+                    </Link>
                     <Button
                       variant="ghost"
                       size="icon"

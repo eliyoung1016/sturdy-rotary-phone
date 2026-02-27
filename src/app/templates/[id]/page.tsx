@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
 import { deleteTemplate, getTemplate } from "@/app/actions/template";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -45,11 +45,9 @@ export default async function TemplatePage({ params }: PageProps) {
   return (
     <div className="container mx-auto py-10 space-y-6">
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" asChild>
-          <Link href="/templates">
-            <ArrowLeft className="h-4 w-4" />
-          </Link>
-        </Button>
+        <Link href="/templates" className={buttonVariants({ variant: "ghost", size: "icon" })}>
+          <ArrowLeft className="h-4 w-4" />
+        </Link>
         <div className="flex-1">
           <h1 className="text-3xl font-bold tracking-tight">{template.name}</h1>
           <p className="text-muted-foreground">
@@ -57,11 +55,9 @@ export default async function TemplatePage({ params }: PageProps) {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" asChild>
-            <Link href={`/templates/${templateId}/edit`}>
-              <Pencil className="mr-2 h-4 w-4" /> Edit Template
-            </Link>
-          </Button>
+          <Link href={`/templates/${templateId}/edit`} className={buttonVariants({ variant: "outline" })}>
+            <Pencil className="mr-2 h-4 w-4" /> Edit Template
+          </Link>
           <form action={deleteAction}>
             <Button variant="destructive" type="submit">
               <Trash2 className="mr-2 h-4 w-4" /> Delete Template

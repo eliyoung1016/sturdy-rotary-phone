@@ -87,9 +87,9 @@ export function DependencyPopover({
                   ...(newVal
                     ? {}
                     : {
-                        dependencyType: "IMMEDIATE",
-                        dependencyDelay: 0,
-                      }),
+                      dependencyType: "IMMEDIATE",
+                      dependencyDelay: 0,
+                    }),
                 });
               }}
             >
