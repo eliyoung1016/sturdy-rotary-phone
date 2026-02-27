@@ -30,7 +30,7 @@ import {
 interface FundProfileDialogProps {
   profile?: FundProfileInput;
   templates: { id: number; name: string }[];
-  trigger?: React.ReactNode;
+  trigger?: React.ReactElement;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
 }
@@ -79,7 +79,7 @@ export function FundProfileDialog({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
+      {trigger && <DialogTrigger render={trigger} />}
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>

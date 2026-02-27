@@ -139,7 +139,7 @@ export const TaskRow = memo(function TaskRow({
               {...attributes}
               {...listeners}
               className={cn(
-                "flex justify-center flex-shrink-0 p-1 rounded",
+                "flex justify-center shrink-0 p-1 rounded",
                 readOnly
                   ? "opacity-50 cursor-not-allowed"
                   : "cursor-grab hover:bg-black/5 active:cursor-grabbing text-muted-foreground",
@@ -390,7 +390,7 @@ export const TaskRow = memo(function TaskRow({
               {taskValues.isCashConfirmed && (
                 <div
                   title="Cash Confirmed"
-                  className="bg-green-100 rounded-full p-1 flex-shrink-0"
+                  className="bg-green-100 rounded-full p-1 shrink-0"
                 >
                   <DollarSign className="w-3.5 h-3.5 text-green-700" />
                 </div>
@@ -398,7 +398,7 @@ export const TaskRow = memo(function TaskRow({
               {taskValues.requiresWorkingHours && (
                 <div
                   title="Requires Working Hours"
-                  className="bg-blue-100 rounded-full p-1 flex-shrink-0"
+                  className="bg-blue-100 rounded-full p-1 shrink-0"
                 >
                   <Clock className="w-3.5 h-3.5 text-blue-700" />
                 </div>
