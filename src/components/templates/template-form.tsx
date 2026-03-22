@@ -133,7 +133,48 @@ export function TemplateForm({ initialData, templateId }: TemplateFormProps) {
         <TaskListEditor
           tasks={form.watch("tasks") as any}
           masterTasks={masterTasks}
+          onAddEmptyTask={() => {
+            const currentTasks = form.getValues("tasks") || [];
+            const usedTaskIds = new Set(
+              currentTasks
+                .map((t: any) => t.taskId)
+                .filter((id: any) => id !== undefined),
+            );
+            const firstUnusedMaster = masterTasks.find(
+              (mt) => !usedTaskIds.has(mt.id),
+            );
+            const defaultMaster = firstUnusedMaster || masterTasks[0];
+
+            const newTask = {
+              tempId: crypto.randomUUID(),
+              taskId: defaultMaster?.id,
+              name: defaultMaster?.name || "",
+              shortName: defaultMaster?.name, // Use name since shortName isn't uniformly available
+              duration: defaultMaster?.duration || 0,
+              dayOffset: 0,
+              startTime: "09:00",
+              type: defaultMaster?.type || "PROCESS",
+              color: defaultMaster?.color || "primary",
+              isCashConfirmed: defaultMaster?.isCashConfirmed || false,
+              requiresWorkingHours: defaultMaster?.requiresWorkingHours || false,
+              dependsOnTempId: undefined,
+              saveToMaster: false,
+              sequenceOrder: currentTasks.length,
+              dependencyType: "NO_RELATION",
+              dependencyDelay: 0,
+            };
+
+            form.setValue("tasks", [...currentTasks, newTask as any], {
+              shouldDirty: true,
+              shouldValidate: true,
+            });
+          }}
         />
+        {((form.formState.errors.tasks as any)?.message || form.formState.errors.tasks?.root?.message) && (
+          <p className="text-red-500 text-sm mt-1">
+            {((form.formState.errors.tasks as any)?.message || form.formState.errors.tasks?.root?.message) as string}
+          </p>
+        )}
 
         <div className="flex justify-end gap-2">
           <Button

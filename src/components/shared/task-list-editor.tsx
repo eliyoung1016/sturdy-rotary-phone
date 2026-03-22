@@ -142,8 +142,7 @@ export function TaskListEditor({
     if (onAddEmptyTask) {
       onAddEmptyTask();
     } else {
-      const store = useSimulationStore.getState();
-      const currentVals = store._getActiveTasks();
+      const currentVals = tasksToRender;
       const usedTaskIds = new Set(
         currentVals
           .map((t: any) => t.taskId)
@@ -169,10 +168,10 @@ export function TaskListEditor({
         dependsOnTempId: undefined,
         saveToMaster: false,
       };
-      // We manually append
-      store.setTasks(store.mode, [...currentVals, newTask as TaskItem]);
+
+      setTasks(mode, [...currentVals, newTask as TaskItem]);
     }
-  }, [onAddEmptyTask, masterTasks]);
+  }, [onAddEmptyTask, masterTasks, tasksToRender, mode, setTasks]);
 
   if (readOnly && tasksToRender.length === 0) {
     return (
@@ -187,7 +186,7 @@ export function TaskListEditor({
       {!readOnly && (
         <div className="flex justify-between items-center">
           <h2 className="text-lg font-semibold">Tasks</h2>
-          <Button type="button" onClick={handleAddEmptyTask} size="sm">
+          <Button render={<button type="button" />} onClick={handleAddEmptyTask} size="sm">
             <Plus className="mr-2 h-3 w-3" /> Add Task
           </Button>
         </div>

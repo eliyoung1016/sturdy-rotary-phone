@@ -25,32 +25,37 @@ export function SharedColorPopover({
   if (!task) return null;
 
   return (
-    <Popover open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <PopoverTrigger asChild>
-        <div
-          style={{
-            position: "fixed",
-            top: anchorEl?.getBoundingClientRect().top ?? 0,
-            left: anchorEl?.getBoundingClientRect().left ?? 0,
-            width: anchorEl?.getBoundingClientRect().width ?? 0,
-            height: anchorEl?.getBoundingClientRect().height ?? 0,
-            pointerEvents: "none",
-            visibility: "hidden",
-          }}
-        />
-      </PopoverTrigger>
+    <Popover
+      open={isOpen}
+      onOpenChange={(open, eventDetails) => {
+        if (!open) {
+          const originalEvent = eventDetails?.event;
+          if (
+            originalEvent &&
+            originalEvent.target instanceof Element &&
+            (originalEvent.target.closest('[role="listbox"]') ||
+              originalEvent.target.closest('[role="option"]'))
+          ) {
+            return;
+          }
+          onClose();
+        }
+      }}
+    >
+      <PopoverTrigger render={(<div
+        style={{
+          position: "fixed",
+          top: anchorEl?.getBoundingClientRect().top ?? 0,
+          left: anchorEl?.getBoundingClientRect().left ?? 0,
+          width: anchorEl?.getBoundingClientRect().width ?? 0,
+          height: anchorEl?.getBoundingClientRect().height ?? 0,
+          pointerEvents: "none",
+          visibility: "hidden",
+        }}
+      />)} />
       <PopoverContent
         className="w-[200px] p-4"
         align="end"
-        onPointerDownOutside={(e) => {
-          if (
-            e.target instanceof Element &&
-            (e.target.closest('[role="listbox"]') ||
-              e.target.closest('[role="option"]'))
-          ) {
-            e.preventDefault();
-          }
-        }}
       >
         <div className="space-y-4">
           <div className="space-y-2">
